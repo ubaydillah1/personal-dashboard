@@ -18,7 +18,7 @@ Create `.env` from `.env.example`:
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
-SECRET_PEPPER=
+APP_PASSWORD_PREFIX=ubay
 CRON_SECRET=
 ```
 
@@ -38,7 +38,17 @@ Do not use a Dashboard URL, MCP URL, or a URL ending in `/rest/v1`.
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-`SECRET_PEPPER` is used to generate the daily login password. Use a different long random value.
+`APP_PASSWORD_PREFIX` is the memorized prefix for the daily login password. The password format is:
+
+```text
+<APP_PASSWORD_PREFIX><DD><MM>
+```
+
+Example for July 11 with the default prefix:
+
+```text
+ubay1107
+```
 
 `CRON_SECRET` protects the Vercel cron endpoint. Vercel sends it as:
 
@@ -69,7 +79,7 @@ Without Supabase CLI, paste the migration SQL into the Supabase Dashboard SQL Ed
 
 ## Daily Password
 
-Generate today's login password locally:
+Generate today's login password locally if you want to double-check it:
 
 ```powershell
 pnpm.cmd today-password
