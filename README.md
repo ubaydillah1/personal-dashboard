@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Activity Tracker
 
-## Getting Started
+Personal daily activity tracker built with Next.js App Router and Supabase.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js App Router
+- Supabase Postgres
+- Tailwind CSS + shadcn/ui
+- Custom daily-password auth with JWT cookies
+- Vercel Cron for a daily Supabase keep-alive query
+
+## Environment Variables
+
+Create `.env` from `.env.example`:
+
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+JWT_SECRET=
+SECRET_PEPPER=
+CRON_SECRET=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`SUPABASE_URL` must be the project base URL, for example:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+SUPABASE_URL=https://abcpmbwmelhwlmygmtuj.supabase.co
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Do not use a Dashboard URL, MCP URL, or a URL ending in `/rest/v1`.
 
-## Learn More
+`SUPABASE_SERVICE_ROLE_KEY` is the server-only service role key from Supabase Project Settings. Never expose it in client code or commit it.
 
-To learn more about Next.js, take a look at the following resources:
+`JWT_SECRET` signs the app login token. Use a long random value:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`SECRET_PEPPER` is used to generate the daily login password. Use a different long random value.
 
-## Deploy on Vercel
+`CRON_SECRET` protects the Vercel cron endpoint. Vercel sends it as:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+Authorization: Bearer <CRON_SECRET>
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use at least 16 random characters.
+
+## Database
+
+Run the migration before opening the board:
+
+```text
+supabase/migrations/20260710201400_create_tracker_tables.sql
+supabase/migrations/20260710204500_create_combo_groups.sql
+```
+
+With Supabase CLI:
+
+```powershell
+supabase login
+supabase link --project-ref abcpmbwmelhwlmygmtuj
+supabase db push
+```
+
+Without Supabase CLI, paste the migration SQL into the Supabase Dashboard SQL Editor and run it.
+
+## Daily Password
+
+Generate today's login password locally:
+
+```powershell
+pnpm.cmd today-password
+```
+
+## Development
+
+```powershell
+pnpm.cmd install
+pnpm.cmd dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## Combos
+
+Combos are reusable groups of tasks. A combo can contain multiple task rows, each with its own title, tag, and note. Adding a combo to the board copies those rows into real daily tasks for the selected day.
+
+Deleting a copied task from the board does not delete the combo. The combo is only the source preset.
+
+## Vercel Cron Keep Alive
+
+Vercel Functions are pinned to `sin1` (Singapore) in `vercel.json`.
+
+`vercel.json` schedules one daily request:
+
+```text
+/api/cron/keep-alive
+```
+
+The route verifies `CRON_SECRET`, then runs a lightweight `head` query against the `tasks` table. This keeps the Supabase project active without changing application data.

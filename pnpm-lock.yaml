@@ -11,6 +11,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@fontsource/poppins':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@supabase/supabase-js':
         specifier: ^2.110.2
         version: 2.110.2
@@ -310,6 +313,9 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource/poppins@5.2.7':
+    resolution: {integrity: sha512-6uQyPmseo4FgI97WIhA4yWRlNaoLk4vSDK/PyRwdqqZb5zAEuc+Kunt8JTMcsHYUEGYBtN15SNkMajMdqUSUmg==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -3232,6 +3238,8 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource/poppins@5.2.7': {}
 
   '@hono/node-server@1.19.14(hono@4.12.29)':
     dependencies:

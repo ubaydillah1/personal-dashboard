@@ -7,6 +7,7 @@ import {
   templateIdSchema,
   updateTemplateSchema,
 } from "@/validators/template.schema";
+import { boardService } from "@/features/board/service";
 import { templateService } from "./service";
 
 function getString(formData: FormData, key: string) {
@@ -57,4 +58,16 @@ export async function deleteTemplateAction(formData: FormData) {
   if (!parsed.success) return;
   await templateService.deleteTemplate(parsed.data.id);
   revalidatePath("/templates");
+}
+
+export async function addComboToWeekAction(formData: FormData) {
+  await requireAuth();
+  const parsed = templateIdSchema.safeParse({
+    id: getString(formData, "id"),
+  });
+
+  if (!parsed.success) return;
+  await boardService.addComboToCurrentWeek(parsed.data.id);
+  revalidatePath("/board");
+  revalidatePath("/report");
 }

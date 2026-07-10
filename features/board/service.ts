@@ -1,5 +1,5 @@
 import { taskRepository } from "@/repositories/task.repository";
-import { templateRepository } from "@/repositories/template.repository";
+import { comboRepository } from "@/repositories/combo.repository";
 import { addDays, slugify, startOfWeekMonday, toDateKey } from "@/lib/utils";
 import type { DayBoard, Task } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/validators/task.schema";
@@ -28,35 +28,82 @@ function groupTasksByDate(tasks: Task[], dates: string[]): DayBoard[] {
 export const boardService = {
   async getWeekBoard(anchorDate?: Date): Promise<DayBoard[]> {
     const dates = getWeekDates(anchorDate);
-    await this.ensureTemplateTasks(dates);
     const tasks = await taskRepository.findByDateRange(dates[0], dates[dates.length - 1]);
     return groupTasksByDate(tasks, dates);
   },
 
-  async ensureTemplateTasks(dates: string[]) {
-    const [templates, existingTasks] = await Promise.all([
-      templateRepository.findActive(),
-      taskRepository.findTemplateInstances(dates[0], dates[dates.length - 1]),
+  async getActiveCombos() {
+    return comboRepository.findActive();
+  },
+
+  async getKnownTags() {
+    const [taskKeywords, combos] = await Promise.all([
+      taskRepository.findKeywords(),
+      comboRepository.findAll(),
     ]);
 
+    return [
+      ...new Set([
+        ...taskKeywords,
+        ...combos.flatMap((combo) => combo.tasks.map((task) => task.keyword)),
+      ]),
+    ].sort();
+  },
+
+  async addComboToDate(id: string, date: string) {
+    const combo = await comboRepository.findById(id);
+    if (!combo || !combo.isActive) return [];
+
+    const existingTasks = await taskRepository.findComboInstances(date, date);
     const existingKeys = new Set(
-      existingTasks.map((task) => `${task.templateId ?? "manual"}:${task.date}`),
+      existingTasks.map((task) => `${task.comboTaskId ?? "manual"}:${task.date}`),
     );
 
-    const tasksToCreate = dates.flatMap((date) =>
-      templates
-        .filter((template) => shouldTemplateAppear(template.activeDays, date))
-        .filter((template) => !existingKeys.has(`${template.id}:${date}`))
-        .map((template) => ({
-          title: template.title,
-          keyword: template.keyword,
-          date,
-          is_done: false,
-          template_id: template.id,
-        })),
+    const tasksToCreate = combo.tasks
+      .filter((task) => !existingKeys.has(`${task.id}:${date}`))
+      .map((task) => ({
+        title: task.title,
+        keyword: task.keyword,
+        note: task.note,
+        date,
+        is_done: false,
+        position: task.position,
+        combo_id: combo.id,
+        combo_task_id: task.id,
+      }));
+
+    return taskRepository.createMany(tasksToCreate);
+  },
+
+  async addComboToCurrentWeek(id: string) {
+    const dates = getWeekDates();
+    const combo = await comboRepository.findById(id);
+    if (!combo || !combo.isActive) return [];
+
+    const existingTasks = await taskRepository.findComboInstances(dates[0], dates[dates.length - 1]);
+
+    const existingKeys = new Set(
+      existingTasks.map((task) => `${task.comboTaskId ?? "manual"}:${task.date}`),
     );
 
-    await taskRepository.createMany(tasksToCreate);
+    const tasksToCreate = dates
+      .filter((date) => shouldTemplateAppear(combo.activeDays, date))
+      .flatMap((date) =>
+        combo.tasks
+          .filter((task) => !existingKeys.has(`${task.id}:${date}`))
+          .map((task) => ({
+            title: task.title,
+            keyword: task.keyword,
+            note: task.note,
+            date,
+            is_done: false,
+            position: task.position,
+            combo_id: combo.id,
+            combo_task_id: task.id,
+          })),
+      );
+
+    return taskRepository.createMany(tasksToCreate);
   },
 
   async addTask(input: CreateTaskInput) {
@@ -83,5 +130,9 @@ export const boardService = {
 
   async deleteTask(id: string) {
     await taskRepository.delete(id);
+  },
+
+  async reorderTasks(tasks: { id: string; position: number }[]) {
+    await taskRepository.updatePositions(tasks);
   },
 };

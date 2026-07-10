@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/jwt";
+import { addComboToDateSchema } from "@/validators/combo.schema";
 import {
   createTaskSchema,
   taskIdSchema,
@@ -68,4 +69,28 @@ export async function deleteTaskAction(formData: FormData) {
   await boardService.deleteTask(parsed.data.id);
   revalidatePath("/board");
   revalidatePath("/report");
+}
+
+export async function addComboToDateAction(formData: FormData) {
+  await requireAuth();
+  const parsed = addComboToDateSchema.safeParse({
+    id: getString(formData, "id"),
+    date: getString(formData, "date"),
+  });
+
+  if (!parsed.success) return;
+  await boardService.addComboToDate(parsed.data.id, parsed.data.date);
+  revalidatePath("/board");
+  revalidatePath("/report");
+}
+
+export async function reorderTasksAction(taskIds: string[]) {
+  await requireAuth();
+  await boardService.reorderTasks(
+    taskIds.map((id, index) => ({
+      id,
+      position: index,
+    })),
+  );
+  revalidatePath("/board");
 }

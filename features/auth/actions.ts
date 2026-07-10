@@ -15,19 +15,19 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Input tidak valid." };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   try {
     if (!verifyDailyPassword(parsed.data.password)) {
-      return { error: "Password harian tidak cocok." };
+      return { error: "Daily password does not match." };
     }
 
     const token = await signAuthToken();
     await setAuthCookie(token);
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Login gagal.",
+      error: error instanceof Error ? error.message : "Login failed.",
     };
   }
 

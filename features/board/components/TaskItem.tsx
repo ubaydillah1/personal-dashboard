@@ -1,5 +1,5 @@
 import { Check, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/shared/PendingButton";
 import type { Task } from "../types";
 import { deleteTaskAction, toggleTaskAction } from "../actions";
 
@@ -10,14 +10,14 @@ export function TaskItem({ task }: { task: Task }) {
         <form action={toggleTaskAction}>
           <input type="hidden" name="id" value={task.id} />
           <input type="hidden" name="isDone" value={String(!task.isDone)} />
-          <Button
+          <PendingButton
             type="submit"
             size="icon-sm"
             variant={task.isDone ? "default" : "outline"}
-            title={task.isDone ? "Tandai belum selesai" : "Tandai selesai"}
+            title={task.isDone ? "Mark as not done" : "Mark as done"}
           >
             <Check className="size-4" />
-          </Button>
+          </PendingButton>
         </form>
         <div className="min-w-0 flex-1">
           <p className={task.isDone ? "text-sm text-zinc-500 line-through" : "text-sm text-zinc-100"}>
@@ -30,9 +30,9 @@ export function TaskItem({ task }: { task: Task }) {
         </div>
         <form action={deleteTaskAction}>
           <input type="hidden" name="id" value={task.id} />
-          <Button type="submit" size="icon-sm" variant="ghost" title="Hapus task">
+          <PendingButton type="submit" size="icon-sm" variant="ghost" title="Delete task">
             <Trash2 className="size-4" />
-          </Button>
+          </PendingButton>
         </form>
       </div>
     </div>

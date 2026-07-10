@@ -33,7 +33,7 @@ export const templateRepository = {
       .select("*")
       .order("created_at", { ascending: true });
 
-    if (error) throw new Error(`Failed to fetch templates: ${error.message}`);
+    if (error) throw new Error(`Failed to fetch combos: ${error.message}`);
     return (data ?? []).map((row) => mapTemplate(row as TemplateRow));
   },
 
@@ -45,8 +45,20 @@ export const templateRepository = {
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
-    if (error) throw new Error(`Failed to fetch active templates: ${error.message}`);
+    if (error) throw new Error(`Failed to fetch active combos: ${error.message}`);
     return (data ?? []).map((row) => mapTemplate(row as TemplateRow));
+  },
+
+  async findById(id: string): Promise<TaskTemplate | null> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("task_templates")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw new Error(`Failed to fetch combo: ${error.message}`);
+    return data ? mapTemplate(data as TemplateRow) : null;
   },
 
   async create(template: NewTaskTemplate): Promise<TaskTemplate> {
@@ -57,7 +69,7 @@ export const templateRepository = {
       .select("*")
       .single();
 
-    if (error) throw new Error(`Failed to create template: ${error.message}`);
+    if (error) throw new Error(`Failed to create combo: ${error.message}`);
     return mapTemplate(data as TemplateRow);
   },
 
@@ -70,7 +82,7 @@ export const templateRepository = {
       .select("*")
       .single();
 
-    if (error) throw new Error(`Failed to update template: ${error.message}`);
+    if (error) throw new Error(`Failed to update combo: ${error.message}`);
     return mapTemplate(data as TemplateRow);
   },
 
@@ -78,6 +90,6 @@ export const templateRepository = {
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.from("task_templates").delete().eq("id", id);
 
-    if (error) throw new Error(`Failed to delete template: ${error.message}`);
+    if (error) throw new Error(`Failed to delete combo: ${error.message}`);
   },
 };

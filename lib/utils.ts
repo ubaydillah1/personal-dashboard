@@ -33,7 +33,7 @@ export function startOfWeekMonday(date: Date) {
 }
 
 export function formatDayLabel(dateKey: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     day: "2-digit",
     month: "short",

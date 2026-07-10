@@ -1,9 +1,19 @@
 import { formatDayLabel } from "@/lib/utils";
+import type { Combo } from "@/features/combos/types";
 import type { DayBoard } from "../types";
+import { AddComboInline } from "./AddComboInline";
 import { AddTaskInline } from "./AddTaskInline";
-import { TaskItem } from "./TaskItem";
+import { SortableTaskList } from "./SortableTaskList";
 
-export function DayColumn({ day }: { day: DayBoard }) {
+export function DayColumn({
+  day,
+  combos,
+  tags,
+}: {
+  day: DayBoard;
+  combos: Combo[];
+  tags: string[];
+}) {
   const doneCount = day.tasks.filter((task) => task.isDone).length;
 
   return (
@@ -17,13 +27,12 @@ export function DayColumn({ day }: { day: DayBoard }) {
           {doneCount}/{day.tasks.length}
         </span>
       </header>
-      <div className="flex flex-1 flex-col gap-2">
-        {day.tasks.map((task) => (
-          <TaskItem key={task.id} task={task} />
-        ))}
-      </div>
+      <SortableTaskList tasks={day.tasks} />
       <div className="mt-3 border-t border-zinc-800 pt-3">
-        <AddTaskInline date={day.date} />
+        <div className="grid gap-3">
+          <AddComboInline date={day.date} combos={combos} />
+          <AddTaskInline date={day.date} tags={tags} />
+        </div>
       </div>
     </section>
   );

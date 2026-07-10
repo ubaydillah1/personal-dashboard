@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { LogIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/shared/PendingButton";
 import { loginAction, type LoginState } from "../actions";
 
 const initialState: LoginState = {};
@@ -24,10 +24,10 @@ export function LoginForm() {
         required
       />
       {state.error ? <p className="text-sm text-red-300">{state.error}</p> : null}
-      <Button type="submit" className="h-10 gap-2" disabled={isPending}>
+      <PendingButton type="submit" className="h-10 gap-2" disabled={isPending} pendingLabel="Signing in...">
         <LogIn className="size-4" />
-        {isPending ? "Masuk..." : "Masuk"}
-      </Button>
+        {isPending ? "Signing in..." : "Sign in"}
+      </PendingButton>
     </form>
   );
 }

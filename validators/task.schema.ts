@@ -7,7 +7,7 @@ const optionalText = z
   .optional();
 
 export const createTaskSchema = z.object({
-  title: z.string().trim().min(1, "Task wajib diisi.").max(200),
+  title: z.string().trim().min(1, "Task is required.").max(200),
   date: z.string().date(),
   note: optionalText,
   keyword: optionalText,
@@ -15,7 +15,7 @@ export const createTaskSchema = z.object({
 
 export const updateTaskSchema = z.object({
   id: z.string().uuid(),
-  title: z.string().trim().min(1, "Task wajib diisi.").max(200),
+  title: z.string().trim().min(1, "Task is required.").max(200),
   note: optionalText,
   keyword: optionalText,
 });
@@ -26,7 +26,7 @@ export const taskIdSchema = z.object({
 
 export const toggleTaskSchema = z.object({
   id: z.string().uuid(),
-  isDone: z.coerce.boolean(),
+  isDone: z.enum(["true", "false"]).transform((value) => value === "true"),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;

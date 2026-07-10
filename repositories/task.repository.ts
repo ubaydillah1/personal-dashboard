@@ -7,8 +7,11 @@ type TaskRow = {
   keyword: string;
   date: string;
   is_done: boolean;
+  position: number | null;
   note: string | null;
   template_id: string | null;
+  combo_id: string | null;
+  combo_task_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -20,8 +23,11 @@ function mapTask(row: TaskRow): Task {
     keyword: row.keyword,
     date: row.date,
     isDone: row.is_done,
+    position: row.position ?? 0,
     note: row.note,
     templateId: row.template_id,
+    comboId: row.combo_id,
+    comboTaskId: row.combo_task_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -36,6 +42,7 @@ export const taskRepository = {
       .gte("date", start)
       .lte("date", end)
       .order("date", { ascending: true })
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (error) throw new Error(`Failed to fetch tasks: ${error.message}`);
@@ -48,6 +55,7 @@ export const taskRepository = {
       .from("tasks")
       .select("*")
       .order("date", { ascending: true })
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (error) throw new Error(`Failed to fetch tasks: ${error.message}`);
@@ -63,8 +71,32 @@ export const taskRepository = {
       .gte("date", start)
       .lte("date", end);
 
-    if (error) throw new Error(`Failed to fetch template tasks: ${error.message}`);
+    if (error) throw new Error(`Failed to fetch combo tasks: ${error.message}`);
     return (data ?? []).map((row) => mapTask(row as TaskRow));
+  },
+
+  async findComboInstances(start: string, end: string): Promise<Task[]> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .not("combo_id", "is", null)
+      .gte("date", start)
+      .lte("date", end);
+
+    if (error) throw new Error(`Failed to fetch copied combo tasks: ${error.message}`);
+    return (data ?? []).map((row) => mapTask(row as TaskRow));
+  },
+
+  async findKeywords(): Promise<string[]> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("keyword")
+      .order("keyword", { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch tags: ${error.message}`);
+    return [...new Set((data ?? []).map((row) => String(row.keyword)).filter(Boolean))];
   },
 
   async create(task: NewTask): Promise<Task> {
@@ -96,6 +128,19 @@ export const taskRepository = {
 
     if (error) throw new Error(`Failed to update task: ${error.message}`);
     return mapTask(data as TaskRow);
+  },
+
+  async updatePositions(tasks: { id: string; position: number }[]): Promise<void> {
+    const supabase = getSupabaseServerClient();
+
+    for (const task of tasks) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ position: task.position })
+        .eq("id", task.id);
+
+      if (error) throw new Error(`Failed to update task order: ${error.message}`);
+    }
   },
 
   async delete(id: string): Promise<void> {
