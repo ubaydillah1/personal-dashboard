@@ -36,7 +36,10 @@ export function useNoteAutosave({
       setSaveStatus("saving");
       const normalizedBlocks = blocks.map((block, index) => ({
         id: block.id,
-        type: block.type === "text" ? ("text" as const) : ("bullet" as const),
+        type:
+          block.type === "link" || block.type === "text"
+            ? block.type
+            : ("bullet" as const),
         content: block.content,
         position: index,
         metadata: block.metadata,

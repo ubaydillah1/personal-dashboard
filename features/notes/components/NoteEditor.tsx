@@ -18,8 +18,8 @@ export function NoteEditor({ note }: { note: Note }) {
   });
 
   return (
-    <section className="min-h-[calc(100vh-3rem)] rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-      <div className="mb-5 flex items-center justify-between gap-3">
+    <section className="flex h-[calc(100vh-3rem)] flex-col rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <div className="mb-5 flex shrink-0 items-center justify-between gap-3">
         <input
           value={title}
           onChange={(event) => setTitle(event.currentTarget.value)}

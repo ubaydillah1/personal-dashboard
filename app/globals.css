@@ -152,33 +152,40 @@
 }
 
 @layer utilities {
-  .board-scrollbar {
+  .board-scrollbar,
+  .notes-scrollbar {
     color-scheme: dark;
     scrollbar-color: oklch(0.38 0 0) transparent;
     scrollbar-width: thin;
   }
 
-  .board-scrollbar::-webkit-scrollbar {
+  .board-scrollbar::-webkit-scrollbar,
+  .notes-scrollbar::-webkit-scrollbar {
+    width: 5px;
     height: 5px;
     background: transparent;
   }
 
-  .board-scrollbar::-webkit-scrollbar-track {
+  .board-scrollbar::-webkit-scrollbar-track,
+  .notes-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .board-scrollbar::-webkit-scrollbar-button {
+  .board-scrollbar::-webkit-scrollbar-button,
+  .notes-scrollbar::-webkit-scrollbar-button {
     display: none;
     width: 0;
     height: 0;
   }
 
-  .board-scrollbar::-webkit-scrollbar-thumb {
+  .board-scrollbar::-webkit-scrollbar-thumb,
+  .notes-scrollbar::-webkit-scrollbar-thumb {
     background: oklch(0.38 0 0);
     border-radius: 999px;
   }
 
-  .board-scrollbar::-webkit-scrollbar-thumb:hover {
+  .board-scrollbar::-webkit-scrollbar-thumb:hover,
+  .notes-scrollbar::-webkit-scrollbar-thumb:hover {
     background: oklch(0.48 0 0);
   }
 }
