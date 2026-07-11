@@ -10,6 +10,8 @@ import { SlashCommandMenu } from "./SlashCommandMenu";
 
 const BULLET_PREFIX = "• ";
 
+const MENTION_SPACER = "              ";
+
 function blocksToText(blocks: DraftBlock[]) {
   return blocks
     .map((block) => (block.type === "bullet" ? `${BULLET_PREFIX}${block.content}` : block.content))
@@ -216,7 +218,11 @@ export function BlocksEditable({
 
     if (isLinkBlock(blocks[lineIndex])) {
       const label = blocks[lineIndex].metadata.label as string;
-      const mentionEnd = lineStart + (line.startsWith(BULLET_PREFIX) ? BULLET_PREFIX.length : 0) + label.length;
+      const mentionEnd =
+        lineStart +
+        (line.startsWith(BULLET_PREFIX) ? BULLET_PREFIX.length : 0) +
+        label.length +
+        MENTION_SPACER.length;
       
       // Jika kursor berada tepat di/sebelum mentionEnd, backspace/delete akan menghapus mention secara utuh.
       // Jika kursor berada dikanan mentionEnd (misal user mengetik tulisan tambahan), ketikan backspace akan menghapus tulisan tambahan tersebut huruf demi huruf secara normal.
@@ -305,9 +311,9 @@ export function BlocksEditable({
   function turnPendingMentionIntoLink(textarea: HTMLTextAreaElement) {
     if (!pendingMention) return;
 
-    // Tidak perlu spasi ekstra karena visual rendering sekarang sudah presisi
-    const nextText = replaceRange(text, pendingMention.start, pendingMention.end, pendingMention.label);
-    const nextCursor = pendingMention.start + pendingMention.label.length;
+    const mentionText = `${pendingMention.label}${MENTION_SPACER}`;
+    const nextText = replaceRange(text, pendingMention.start, pendingMention.end, mentionText);
+    const nextCursor = pendingMention.start + mentionText.length;
     const lineIndex = getLineIndex(nextText, nextCursor);
 
     commitLinkText(nextText, lineIndex, pendingMention.url, pendingMention.label);
@@ -316,7 +322,36 @@ export function BlocksEditable({
     setTextareaSelection(textarea, nextCursor);
   }
 
+  function ensureMentionSpacer(textarea: HTMLTextAreaElement) {
+    const cursor = textarea.selectionStart;
+    const lineIndex = getLineIndex(text, cursor);
+    const block = blocks[lineIndex];
+    const label = block?.metadata.label;
+    if (!isLinkBlock(block) || typeof label !== "string") return false;
+
+    const { lineStart, line } = getLineBounds(text, cursor);
+    const prefixLength = line.startsWith(BULLET_PREFIX) ? BULLET_PREFIX.length : 0;
+    const content = getDisplayLine(line);
+    if (!content.startsWith(label)) return false;
+
+    const existingSpacer = content.slice(label.length).match(/^ */)?.[0] ?? "";
+    if (existingSpacer.length >= MENTION_SPACER.length) return false;
+
+    const spacerStart = lineStart + prefixLength + label.length;
+    const spacerEnd = spacerStart + existingSpacer.length;
+    const nextText = replaceRange(text, spacerStart, spacerEnd, MENTION_SPACER);
+    const nextCursor =
+      cursor >= spacerEnd
+        ? cursor + MENTION_SPACER.length - existingSpacer.length
+        : Math.max(cursor, spacerStart + MENTION_SPACER.length);
+    commitText(nextText);
+    setTextareaSelection(textarea, nextCursor);
+    return true;
+  }
+
   function handleClick(event: React.MouseEvent<HTMLTextAreaElement>) {
+    ensureMentionSpacer(event.currentTarget);
+
     if (!event.ctrlKey && !event.metaKey && event.detail < 2) return;
 
     const textarea = event.currentTarget;
