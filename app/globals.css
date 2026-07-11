@@ -188,4 +188,36 @@
   .notes-scrollbar::-webkit-scrollbar-thumb:hover {
     background: oklch(0.48 0 0);
   }
+
+  .notes-editor .ProseMirror {
+    height: 100%;
+    min-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    outline: none;
+    max-width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .notes-editor .ProseMirror p {
+    margin: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .notes-editor .ProseMirror ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+
+  .notes-editor .ProseMirror li {
+    padding-left: 0.25rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }

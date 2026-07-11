@@ -16,9 +16,15 @@ export function BoardView({
   return (
     <div className="board-scrollbar overflow-x-auto pb-3">
       <div className="flex min-w-max gap-3">
-        {days.map((day) => (
+        {days.map((day, index) => (
           <div key={day.date}>
-            <DayColumn day={day} combos={combos} tags={tags} isToday={day.date === today} />
+            <DayColumn
+              day={day}
+              combos={combos}
+              tags={tags}
+              previousDate={days[index - 1]?.date}
+              isToday={day.date === today}
+            />
           </div>
         ))}
       </div>

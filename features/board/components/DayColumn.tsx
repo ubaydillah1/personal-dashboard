@@ -3,17 +3,20 @@ import type { Combo } from "@/features/combos/types";
 import type { DayBoard } from "../types";
 import { AddComboInline } from "./AddComboInline";
 import { AddTaskInline } from "./AddTaskInline";
+import { CopyPreviousDayButton } from "./CopyPreviousDayButton";
 import { SortableTaskList } from "./SortableTaskList";
 
 export function DayColumn({
   day,
   combos,
   tags,
+  previousDate,
   isToday = false,
 }: {
   day: DayBoard;
   combos: Combo[];
   tags: string[];
+  previousDate?: string;
   isToday?: boolean;
 }) {
   const doneCount = day.tasks.filter((task) => task.isDone).length;
@@ -34,6 +37,7 @@ export function DayColumn({
       <SortableTaskList date={day.date} tasks={day.tasks} />
       <div className="mt-3 border-t border-zinc-800 pt-3">
         <div className="grid gap-3">
+          {previousDate ? <CopyPreviousDayButton from={previousDate} to={day.date} /> : null}
           <AddComboInline date={day.date} combos={combos} />
           <AddTaskInline date={day.date} tags={tags} />
         </div>

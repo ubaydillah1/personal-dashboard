@@ -1,93 +1,109 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { LinkIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import { TextSelection } from "@tiptap/pm/state";
+import { wrapInList } from "@tiptap/pm/schema-list";
+import type { EditorView } from "@tiptap/pm/view";
 import { fetchYoutubeTitleAction } from "../actions";
-import { createDraftBlock } from "../editor/draft";
 import { findFirstLinkPreview, getLinkPreview, isYoutubeUrl } from "../editor/link";
+import { LinkMention } from "../editor/linkMention";
+import { draftBlocksToTiptapDoc, tiptapDocToDraftBlocks } from "../editor/tiptapDocument";
 import type { DraftBlock } from "../editor/types";
 import { SlashCommandMenu } from "./SlashCommandMenu";
 
-const BULLET_PREFIX = "• ";
+type MenuPosition = {
+  top: number;
+  left: number;
+};
 
-const MENTION_SPACER = "              ";
-
-function blocksToText(blocks: DraftBlock[]) {
-  return blocks
-    .map((block) => (block.type === "bullet" ? `${BULLET_PREFIX}${block.content}` : block.content))
-    .join("\n");
-}
-
-function textToBlocks(value: string, previousBlocks: DraftBlock[]) {
-  const lines = value.split("\n");
-
-  return lines.map((line, index) => {
-    const previousBlock = previousBlocks[index];
-    const isBullet = line.startsWith(BULLET_PREFIX);
-    const content = isBullet ? line.slice(BULLET_PREFIX.length) : line;
-    const label =
-      (previousBlock?.metadata?.label as string | undefined) ||
-      (previousBlock?.type === "link" ? previousBlock.content : undefined);
-    const isSameLink =
-      previousBlock?.type === "link" &&
-      (previousBlock.content === content || (label && content.startsWith(label)));
-
-    return {
-      id: previousBlock?.id ?? crypto.randomUUID(),
-      type: isBullet ? "bullet" : isSameLink ? "link" : "text",
-      content,
-      position: index,
-      metadata: isSameLink ? { ...previousBlock.metadata, label } : {},
-    } satisfies DraftBlock;
-  });
-}
-
-function getLineBounds(value: string, cursor: number) {
-  const lineStart = value.lastIndexOf("\n", cursor - 1) + 1;
-  const nextLineBreak = value.indexOf("\n", cursor);
-  const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
-  return {
-    lineStart,
-    lineEnd,
-    line: value.slice(lineStart, lineEnd),
-  };
-}
-
-function replaceRange(value: string, start: number, end: number, replacement: string) {
-  return `${value.slice(0, start)}${replacement}${value.slice(end)}`;
-}
-
-function getLineIndex(value: string, cursor: number) {
-  return value.slice(0, cursor).split("\n").length - 1;
-}
-
-function getBlockUrl(block?: DraftBlock) {
-  const url = block?.metadata.url;
-  return typeof url === "string" ? url : null;
-}
-
-function isLinkBlock(block?: DraftBlock) {
-  return block?.type === "link" && Boolean(getBlockUrl(block));
-}
-
-function getDisplayLine(line: string) {
-  return line.startsWith(BULLET_PREFIX) ? line.slice(BULLET_PREFIX.length) : line;
-}
-
-function getLineDeleteRange(value: string, lineStart: number, lineEnd: number) {
-  if (lineStart === 0 && lineEnd === value.length) return { start: 0, end: value.length };
-  if (lineEnd < value.length) return { start: lineStart, end: lineEnd + 1 };
-  return { start: Math.max(0, lineStart - 1), end: lineEnd };
-}
-
-type PendingMention = {
+type PendingMention = MenuPosition & {
+  from: number;
+  to: number;
   url: string;
-  start: number;
-  end: number;
-  lineStart: number;
   label: string;
   isLoadingTitle: boolean;
 };
+
+type TextRangeValue = {
+  from: number;
+  to: number;
+};
+
+function getMenuPosition(view: EditorView): MenuPosition {
+  const rect = view.coordsAtPos(view.state.selection.from);
+  const parentRect = view.dom.getBoundingClientRect();
+
+  return {
+    top: rect.bottom - parentRect.top + 8,
+    left: Math.max(0, rect.left - parentRect.left),
+  };
+}
+
+function createMentionNode(view: EditorView, url: string, label: string) {
+  const preview = findFirstLinkPreview(url);
+  return view.state.schema.nodes.linkMention.create({
+    href: url,
+    label,
+    kind: preview?.kind ?? "link",
+  });
+}
+
+function findTextRange(view: EditorView, value: string, preferredFrom: number): TextRangeValue | null {
+  let bestRange: TextRangeValue | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  view.state.doc.descendants((node, position) => {
+    if (!node.isTextblock) return true;
+
+    const text = node.textContent;
+    const index = text.indexOf(value);
+    if (index < 0) return true;
+
+    const from = position + 1 + index;
+    const to = from + value.length;
+    const distance = Math.abs(from - preferredFrom);
+
+    if (distance < bestDistance) {
+      bestRange = { from, to };
+      bestDistance = distance;
+    }
+
+    return true;
+  });
+
+  return bestRange;
+}
+
+function replaceRangeWithMention(view: EditorView, from: number, to: number, url: string, label: string) {
+  const currentRange = findTextRange(view, url, from);
+  const node = createMentionNode(view, url, label);
+  const safeFrom = Math.min(currentRange?.from ?? from, view.state.doc.content.size);
+  const safeTo = Math.min(Math.max(currentRange?.to ?? to, safeFrom), view.state.doc.content.size);
+  const space = view.state.schema.text(" ");
+  const transaction = view.state.tr.replaceWith(safeFrom, safeTo, [node, space]);
+  const selectionPosition = Math.min(safeFrom + node.nodeSize + space.nodeSize, transaction.doc.content.size);
+
+  view.dispatch(
+    transaction
+      .setSelection(TextSelection.create(transaction.doc, selectionPosition))
+      .scrollIntoView(),
+  );
+  return safeFrom;
+}
+
+function turnCurrentTextblockIntoList(view: EditorView) {
+  const { $from } = view.state.selection;
+  view.dispatch(view.state.tr.delete($from.start(), $from.end()));
+  wrapInList(view.state.schema.nodes.bulletList)(view.state, view.dispatch, view);
+}
+
+function getTextblockRange(view: EditorView) {
+  const { $from } = view.state.selection;
+  return { from: $from.start(), to: $from.end(), text: $from.parent.textContent };
+}
 
 export function BlocksEditable({
   blocks,
@@ -96,426 +112,191 @@ export function BlocksEditable({
   blocks: DraftBlock[];
   setBlocks: React.Dispatch<React.SetStateAction<DraftBlock[]>>;
 }) {
-  const initialText = useMemo(
-    () => blocksToText(blocks.length > 0 ? blocks : [createDraftBlock(0)]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const [text, setText] = useState(initialText);
-  const [commandLineStart, setCommandLineStart] = useState<number | null>(null);
+  const content = useMemo(() => draftBlocksToTiptapDoc(blocks), []);
+  const [slashMenu, setSlashMenu] = useState<MenuPosition | null>(null);
   const [pendingMention, setPendingMention] = useState<PendingMention | null>(null);
-  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const internalCommitRef = useRef(false);
-  const commandLineIndex =
-    commandLineStart === null ? 0 : text.slice(0, commandLineStart).split("\n").length - 1;
 
-  useEffect(() => {
-    if (internalCommitRef.current) {
-      internalCommitRef.current = false;
-      return;
-    }
-    setText(blocksToText(blocks));
-  }, [blocks]);
-
-  function commitText(nextText: string) {
-    internalCommitRef.current = true;
-    setText(nextText);
-    setBlocks((currentBlocks) => textToBlocks(nextText, currentBlocks));
-  }
-
-  function commitTextAfterDeletingBlock(nextText: string, deletedIndex: number) {
-    internalCommitRef.current = true;
-    setText(nextText);
-    setBlocks((currentBlocks) =>
-      textToBlocks(
-        nextText,
-        currentBlocks.filter((_, index) => index !== deletedIndex),
-      ),
-    );
-  }
-
-  function commitLinkText(nextText: string, lineIndex: number, url: string, label: string) {
-    internalCommitRef.current = true;
-    setText(nextText);
-    setBlocks((currentBlocks) =>
-      textToBlocks(nextText, currentBlocks).map((block, index) =>
-        index === lineIndex
-          ? {
-              ...block,
-              type: "link",
-              metadata: { ...block.metadata, url, label },
-            }
-          : block,
-      ),
-    );
-  }
-
-  function handleChange(nextText: string, cursor: number) {
-    const { lineStart, line } = getLineBounds(nextText, cursor);
-    setActiveLineIndex(getLineIndex(nextText, cursor));
-    setCommandLineStart(line === "/" ? lineStart : null);
+  function hideMenus() {
+    setSlashMenu(null);
     setPendingMention(null);
-    commitText(nextText);
   }
 
-  function setTextareaSelection(textarea: HTMLTextAreaElement, cursor: number) {
-    window.requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursor, cursor);
-      setActiveLineIndex(getLineIndex(textarea.value, cursor));
-    });
-  }
-
-  function turnSlashIntoList(textarea: HTMLTextAreaElement) {
-    if (commandLineStart === null) return;
-    const nextText = replaceRange(text, commandLineStart, commandLineStart + 1, BULLET_PREFIX);
-    commitText(nextText);
-    setCommandLineStart(null);
-    setTextareaSelection(textarea, commandLineStart + BULLET_PREFIX.length);
-  }
-
-  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    const textarea = event.currentTarget;
-    const cursor = textarea.selectionStart;
-    const selectionEnd = textarea.selectionEnd;
-    const { lineStart, lineEnd, line } = getLineBounds(text, cursor);
-    const lineIndex = getLineIndex(text, cursor);
-
-    if (pendingMention && event.key === "Enter") {
-      event.preventDefault();
-      turnPendingMentionIntoLink(textarea);
-      return;
-    }
-
-    if (pendingMention && event.key === "Escape") {
-      event.preventDefault();
-      setPendingMention(null);
-      return;
-    }
-
-    if (commandLineStart !== null && event.key === "Enter") {
-      event.preventDefault();
-      turnSlashIntoList(textarea);
-      return;
-    }
-
-    if (commandLineStart !== null && event.key === "Escape") {
-      event.preventDefault();
-      setCommandLineStart(null);
-      return;
-    }
-
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-      event.preventDefault();
-      const deleteEnd = lineEnd < text.length ? lineEnd + 1 : lineEnd;
-      const nextText = replaceRange(text, lineStart, deleteEnd, "");
-      commitText(nextText.length > 0 ? nextText : "");
-      const previousLineEnd = lineStart > 0 ? lineStart - 1 : 0;
-      setTextareaSelection(textarea, previousLineEnd);
-      return;
-    }
-
-    if (isLinkBlock(blocks[lineIndex])) {
-      const label = blocks[lineIndex].metadata.label as string;
-      const mentionEnd =
-        lineStart +
-        (line.startsWith(BULLET_PREFIX) ? BULLET_PREFIX.length : 0) +
-        label.length +
-        MENTION_SPACER.length;
-      
-      // Jika kursor berada tepat di/sebelum mentionEnd, backspace/delete akan menghapus mention secara utuh.
-      // Jika kursor berada dikanan mentionEnd (misal user mengetik tulisan tambahan), ketikan backspace akan menghapus tulisan tambahan tersebut huruf demi huruf secara normal.
-      if (cursor <= mentionEnd) {
-        if (event.key === "Backspace" || event.key === "Delete") {
+  const editor = useEditor({
+    immediatelyRender: false,
+    content,
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        codeBlock: false,
+        blockquote: false,
+        horizontalRule: false,
+        link: false,
+      }),
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: true,
+        HTMLAttributes: {
+          class: "font-semibold text-zinc-100 underline decoration-zinc-500 underline-offset-4 hover:decoration-zinc-300",
+          target: "_blank",
+          rel: "noreferrer",
+        },
+      }),
+      LinkMention,
+    ],
+    editorProps: {
+      attributes: {
+        class:
+          "notes-scrollbar h-full min-h-0 overflow-y-auto pr-2 text-base font-medium leading-8 text-zinc-100 outline-none selection:bg-sky-500/35",
+      },
+      handleKeyDown(view, event) {
+        if (pendingMention && event.key === "Enter") {
           event.preventDefault();
-          const range = getLineDeleteRange(text, lineStart, lineEnd);
-          const nextText = replaceRange(text, range.start, range.end, "");
-          commitTextAfterDeletingBlock(nextText, lineIndex);
-          setTextareaSelection(textarea, range.start);
-          return;
-        }
-      }
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const prefix = line.startsWith(BULLET_PREFIX) ? `\n${BULLET_PREFIX}` : "\n";
-      const nextText = replaceRange(text, cursor, selectionEnd, prefix);
-      const nextCursor = cursor + prefix.length;
-      commitText(nextText);
-      setCommandLineStart(null);
-      setPendingMention(null);
-      setTextareaSelection(textarea, nextCursor);
-      return;
-    }
-
-    if (
-      event.key === "Backspace" &&
-      cursor === selectionEnd &&
-      line.startsWith(BULLET_PREFIX) &&
-      cursor <= lineStart + BULLET_PREFIX.length
-    ) {
-      event.preventDefault();
-      const nextText = replaceRange(text, lineStart, lineStart + BULLET_PREFIX.length, "");
-      commitText(nextText);
-      setTextareaSelection(textarea, lineStart);
-    }
-  }
-
-  function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
-    const pastedText = event.clipboardData.getData("text").trim();
-    const preview = getLinkPreview(pastedText);
-    if (!preview) return;
-
-    event.preventDefault();
-
-    const textarea = event.currentTarget;
-    const cursor = textarea.selectionStart;
-    const selectionEnd = textarea.selectionEnd;
-    const nextText = replaceRange(text, cursor, selectionEnd, preview.url);
-    const nextCursor = cursor + preview.url.length;
-    const { lineStart } = getLineBounds(nextText, nextCursor);
-
-    commitText(nextText);
-    setCommandLineStart(null);
-    setActiveLineIndex(getLineIndex(nextText, nextCursor));
-    setPendingMention({
-      url: preview.url,
-      start: cursor,
-      end: nextCursor,
-      lineStart,
-      label: preview.title,
-      isLoadingTitle: isYoutubeUrl(preview.url),
-    });
-    setTextareaSelection(textarea, nextCursor);
-
-    if (isYoutubeUrl(preview.url)) {
-      fetchYoutubeTitleAction(preview.url).then((result) => {
-        if (!result.success || !result.title) {
-          setPendingMention((current) =>
-            current?.url === preview.url ? { ...current, isLoadingTitle: false } : current,
+          const position = replaceRangeWithMention(
+            view,
+            pendingMention.from,
+            pendingMention.to,
+            pendingMention.url,
+            pendingMention.label,
           );
-          return;
+          setPendingMention(null);
+
+          if (isYoutubeUrl(pendingMention.url)) {
+            fetchYoutubeTitleAction(pendingMention.url).then((result) => {
+              if (!result.success || !result.title) return;
+              const node = view.state.doc.nodeAt(position);
+              if (node?.type.name !== "linkMention") return;
+              view.dispatch(view.state.tr.setNodeMarkup(position, undefined, { ...node.attrs, label: result.title }));
+            });
+          }
+          return true;
         }
 
-        setPendingMention((current) =>
-          current?.url === preview.url
-            ? { ...current, label: result.title ?? current.label, isLoadingTitle: false }
-            : current,
-        );
-      });
-    }
+        if ((slashMenu || pendingMention) && event.key === "Escape") {
+          event.preventDefault();
+          hideMenus();
+          return true;
+        }
+
+        if (slashMenu && event.key === "Enter") {
+          event.preventDefault();
+          turnCurrentTextblockIntoList(view);
+          setSlashMenu(null);
+          return true;
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          const { $from } = view.state.selection;
+          const start = $from.start();
+          const end = $from.end();
+          const target = Math.max(0, start - 1);
+          view.dispatch(
+            view.state.tr
+              .delete(start, end)
+              .setSelection(TextSelection.near(view.state.doc.resolve(target))),
+          );
+          return true;
+        }
+
+        if (event.key === "Enter") {
+          const { $from } = view.state.selection;
+          if ($from.parent.textContent === "/list") {
+            event.preventDefault();
+            turnCurrentTextblockIntoList(view);
+            return true;
+          }
+        }
+
+        return false;
+      },
+      handlePaste(view, event) {
+        const text = event.clipboardData?.getData("text/plain").trim();
+        const preview = text ? getLinkPreview(text) : null;
+        if (!preview) return false;
+
+        event.preventDefault();
+        const from = view.state.selection.from;
+        view.dispatch(view.state.tr.insertText(preview.url).scrollIntoView());
+        const currentRange = findTextRange(view, preview.url, from);
+        const to = currentRange?.to ?? from + preview.url.length;
+        const position = getMenuPosition(view);
+        setSlashMenu(null);
+        setPendingMention({
+          ...position,
+          from,
+          to,
+          url: preview.url,
+          label: preview.title,
+          isLoadingTitle: isYoutubeUrl(preview.url),
+        });
+
+        if (isYoutubeUrl(preview.url)) {
+          fetchYoutubeTitleAction(preview.url).then((result) => {
+            if (!result.success || !result.title) return;
+            setPendingMention((current) =>
+              current?.url === preview.url ? { ...current, label: result.title ?? current.label, isLoadingTitle: false } : current,
+            );
+          });
+        }
+
+        return true;
+      },
+    },
+    onSelectionUpdate({ editor }) {
+      const view = editor.view;
+      const range = getTextblockRange(view);
+      setSlashMenu(range.text === "/" ? getMenuPosition(view) : null);
+    },
+    onUpdate({ editor }) {
+      const view = editor.view;
+      const range = getTextblockRange(view);
+      setSlashMenu(range.text === "/" ? getMenuPosition(view) : null);
+      setBlocks(tiptapDocToDraftBlocks(editor.getJSON() as JSONContent));
+    },
+  });
+
+  function selectSlashList() {
+    if (!editor) return;
+    turnCurrentTextblockIntoList(editor.view);
+    setSlashMenu(null);
   }
 
-  function turnPendingMentionIntoLink(textarea: HTMLTextAreaElement) {
-    if (!pendingMention) return;
-
-    const mentionText = `${pendingMention.label}${MENTION_SPACER}`;
-    const nextText = replaceRange(text, pendingMention.start, pendingMention.end, mentionText);
-    const nextCursor = pendingMention.start + mentionText.length;
-    const lineIndex = getLineIndex(nextText, nextCursor);
-
-    commitLinkText(nextText, lineIndex, pendingMention.url, pendingMention.label);
+  function selectMention() {
+    if (!editor || !pendingMention) return;
+    replaceRangeWithMention(editor.view, pendingMention.from, pendingMention.to, pendingMention.url, pendingMention.label);
     setPendingMention(null);
-    setActiveLineIndex(lineIndex);
-    setTextareaSelection(textarea, nextCursor);
   }
-
-  function ensureMentionSpacer(textarea: HTMLTextAreaElement) {
-    const cursor = textarea.selectionStart;
-    const lineIndex = getLineIndex(text, cursor);
-    const block = blocks[lineIndex];
-    const label = block?.metadata.label;
-    if (!isLinkBlock(block) || typeof label !== "string") return false;
-
-    const { lineStart, line } = getLineBounds(text, cursor);
-    const prefixLength = line.startsWith(BULLET_PREFIX) ? BULLET_PREFIX.length : 0;
-    const content = getDisplayLine(line);
-    if (!content.startsWith(label)) return false;
-
-    const existingSpacer = content.slice(label.length).match(/^ */)?.[0] ?? "";
-    if (existingSpacer.length >= MENTION_SPACER.length) return false;
-
-    const spacerStart = lineStart + prefixLength + label.length;
-    const spacerEnd = spacerStart + existingSpacer.length;
-    const nextText = replaceRange(text, spacerStart, spacerEnd, MENTION_SPACER);
-    const nextCursor =
-      cursor >= spacerEnd
-        ? cursor + MENTION_SPACER.length - existingSpacer.length
-        : Math.max(cursor, spacerStart + MENTION_SPACER.length);
-    commitText(nextText);
-    setTextareaSelection(textarea, nextCursor);
-    return true;
-  }
-
-  function handleClick(event: React.MouseEvent<HTMLTextAreaElement>) {
-    ensureMentionSpacer(event.currentTarget);
-
-    if (!event.ctrlKey && !event.metaKey && event.detail < 2) return;
-
-    const textarea = event.currentTarget;
-    const lineIndex = getLineIndex(text, textarea.selectionStart);
-    const block = blocks[lineIndex];
-    const blockUrl = getBlockUrl(block);
-    const url = blockUrl ?? findFirstLinkPreview(block?.content ?? "")?.url;
-    if (!url) return;
-
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
-  const linkOverlays = text
-    .split("\n")
-    .map((line, index) => {
-      const block = blocks[index];
-      const content = getDisplayLine(line);
-      const mentionedUrl = getBlockUrl(block);
-      const rawUrl = findFirstLinkPreview(content)?.url;
-      const url = mentionedUrl ?? rawUrl;
-
-      if (!url) return null;
-
-      const label = (block?.metadata?.label as string | undefined) || (mentionedUrl ? content : url);
-
-      return {
-        index,
-        url,
-        label,
-        isMention: Boolean(mentionedUrl),
-        isBullet: line.startsWith(BULLET_PREFIX),
-        isYoutube: isYoutubeUrl(url),
-        isActive: activeLineIndex === index,
-      };
-    })
-    .filter((overlay): overlay is NonNullable<typeof overlay> => Boolean(overlay));
 
   return (
-    <div className="relative min-h-0 flex-1">
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(event) => handleChange(event.currentTarget.value, event.currentTarget.selectionStart)}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        onKeyUp={(event) => setActiveLineIndex(getLineIndex(text, event.currentTarget.selectionStart))}
-        onSelect={(event) => setActiveLineIndex(getLineIndex(text, event.currentTarget.selectionStart))}
-        onFocus={(event) => setActiveLineIndex(getLineIndex(text, event.currentTarget.selectionStart))}
-        onBlur={() => setActiveLineIndex(null)}
-        onPaste={handlePaste}
-        spellCheck={false}
-        className="notes-scrollbar relative z-10 h-full min-h-0 w-full resize-none bg-transparent pr-2 text-base font-medium leading-8 text-zinc-100 outline-none selection:bg-sky-500/35"
-      />
-      {/* Overlay link/mention absolute di atas textarea */}
-      <div className="absolute inset-0 pointer-events-none select-none z-20">
-        {text.split("\n").map((line, index) => {
-          const block = blocks[index];
-          const isBullet = line.startsWith(BULLET_PREFIX);
-          const content = isBullet ? line.slice(BULLET_PREFIX.length) : line;
-          const mentionedUrl = getBlockUrl(block);
-          const rawUrl = findFirstLinkPreview(content)?.url;
-          const url = mentionedUrl ?? rawUrl;
-          const isPendingMentionLine =
-            pendingMention !== null && getLineIndex(text, pendingMention.start) === index;
-
-          if (url && !isPendingMentionLine) {
-            const label = (block?.metadata?.label as string | undefined) || (mentionedUrl ? content : url);
-            const isMention = Boolean(mentionedUrl);
-            const isYoutube = isYoutubeUrl(url);
-
-            return (
-              <div
-                key={`${index}-${url}`}
-                className="absolute flex h-8 max-w-full items-center"
-                style={{
-                  top: `${index * 32}px`,
-                  left: isBullet ? "24px" : "0px",
-                }}
-              >
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={url}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    window.open(url, "_blank", "noopener,noreferrer");
-                  }}
-                  onMouseDown={(event) => {
-                    // Fokuskan kursor ke akhir label jika diklik
-                    event.preventDefault();
-                    const textarea = textareaRef.current;
-                    if (!textarea) return;
-                    const lines = text.split("\n");
-                    const lineStart = lines.slice(0, index).join("\n").length + (index > 0 ? 1 : 0);
-                    const prefixLen = isBullet ? BULLET_PREFIX.length : 0;
-                    const selectionPos = lineStart + prefixLen + content.length;
-                    textarea.focus();
-                    textarea.setSelectionRange(selectionPos, selectionPos);
-                  }}
-                  className={
-                    isMention
-                      ? "relative inline-flex pointer-events-auto cursor-pointer items-center rounded-md border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-base font-semibold leading-7 text-zinc-100 shadow-sm hover:bg-zinc-800"
-                      : "relative inline-flex pointer-events-auto cursor-pointer items-center truncate text-base font-semibold leading-8 text-zinc-100 underline decoration-zinc-500 underline-offset-4 hover:decoration-zinc-300"
-                  }
-                >
-                  <span
-                    className={
-                      isYoutube
-                        ? "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded bg-red-600 text-white transition hover:bg-red-500 mr-1.5"
-                        : "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded bg-zinc-800 text-emerald-300 transition hover:bg-zinc-700 mr-1.5"
-                    }
-                  >
-                    {isYoutube ? (
-                      <span className="ml-0.5 h-0 w-0 border-y-[4px] border-l-[7px] border-y-transparent border-l-white" />
-                    ) : (
-                      <LinkIcon className="size-3.5" />
-                    )}
-                  </span>
-                  <span>{label}</span>
-                </a>
-              </div>
-            );
-          }
-
-          return null;
-        })}
-      </div>
-      {commandLineStart !== null ? (
-        <div
-          className="absolute left-0 z-20"
-          style={{ top: `${Math.max(36, commandLineIndex * 32 + 40)}px` }}
-        >
-          <SlashCommandMenu
-            onSelectList={() => {
-              if (textareaRef.current) turnSlashIntoList(textareaRef.current);
-            }}
-          />
+    <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+      <EditorContent editor={editor} className="notes-editor h-full min-h-0 min-w-0 overflow-hidden" />
+      {slashMenu ? (
+        <div className="absolute z-30" style={{ top: slashMenu.top, left: slashMenu.left }}>
+          <SlashCommandMenu onSelectList={selectSlashList} />
         </div>
       ) : null}
       {pendingMention ? (
         <div
-          className="absolute z-20 w-[260px] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl"
-          style={{ top: `${Math.max(36, getLineIndex(text, pendingMention.start) * 32 + 40)}px`, left: "0px" }}
+          className="absolute z-30 w-80 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl shadow-black/30"
+          style={{ top: pendingMention.top, left: pendingMention.left }}
         >
+          <p className="px-3 py-2 text-xs font-medium text-zinc-500">Paste as</p>
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-medium text-zinc-100 hover:bg-zinc-800"
+            className="flex w-full items-center gap-3 rounded-md bg-zinc-800 px-3 py-2 text-left text-sm font-medium text-zinc-100"
             onMouseDown={(event) => {
               event.preventDefault();
-              if (textareaRef.current) turnPendingMentionIntoLink(textareaRef.current);
+              selectMention();
             }}
           >
-            <LinkIcon className="size-4 text-zinc-400" />
-            <span className="min-w-0 flex-1 truncate">
-              Mention
-              <span className="ml-1 text-xs font-normal text-zinc-500">
-                {pendingMention.isLoadingTitle ? "fetching title..." : pendingMention.label}
-              </span>
+            Mention
+            <span className="min-w-0 flex-1 truncate text-xs font-normal text-zinc-500">
+              {pendingMention.isLoadingTitle ? "fetching title..." : pendingMention.label}
             </span>
           </button>
-          <div className="border-t border-zinc-800 px-2 py-1 text-xs text-zinc-500">
-            Enter to select · esc to keep URL
+          <div className="mt-1 border-t border-zinc-800 px-3 py-2 text-xs text-zinc-500">
+            Enter to select / esc to keep URL
           </div>
         </div>
       ) : null}

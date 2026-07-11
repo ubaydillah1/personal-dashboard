@@ -10,7 +10,7 @@ export function NotesWorkspace({
   note: Note | null;
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       <NotesList notes={notes} activeNoteId={note?.id} />
       {note ? (
         <NoteEditor note={note} />

@@ -45,6 +45,11 @@ function groupTasksByDate(tasks: Task[], dates: string[]): DayBoard[] {
   }));
 }
 
+function getNextPosition(tasks: Task[]) {
+  if (tasks.length === 0) return 0;
+  return Math.max(...tasks.map((task) => task.position)) + 1;
+}
+
 export const boardService = {
   async getWeekBoard(anchorDate?: Date): Promise<DayBoard[]> {
     const dates = getWeekDates(anchorDate);
@@ -139,18 +144,22 @@ export const boardService = {
   },
 
   async addTask(input: CreateTaskInput) {
+    const dayTasks = await taskRepository.findByDateRange(input.date, input.date);
+
     return taskRepository.create({
       title: input.title,
       keyword: getKeyword(input.title, input.keyword),
       date: input.date,
       note: input.note ?? null,
       is_done: false,
+      position: getNextPosition(dayTasks),
     });
   },
 
   async copyTaskToDate(id: string, date: string) {
     const task = await taskRepository.findById(id);
     if (!task) return null;
+    const dayTasks = await taskRepository.findByDateRange(date, date);
 
     return taskRepository.create({
       title: task.title,
@@ -158,9 +167,37 @@ export const boardService = {
       note: task.note,
       date,
       is_done: false,
+      position: getNextPosition(dayTasks),
       combo_id: task.comboId,
       combo_task_id: task.comboTaskId,
     });
+  },
+
+  async copyDayTasks(from: string, to: string) {
+    const [sourceTasks, targetTasks] = await Promise.all([
+      taskRepository.findByDateRange(from, from),
+      taskRepository.findByDateRange(to, to),
+    ]);
+
+    const existingKeys = new Set(
+      targetTasks.map((task) => `${task.title}:${task.keyword}:${task.note ?? ""}`),
+    );
+    let nextPosition = getNextPosition(targetTasks);
+
+    const tasksToCreate = sourceTasks
+      .filter((task) => !existingKeys.has(`${task.title}:${task.keyword}:${task.note ?? ""}`))
+      .map((task) => ({
+        title: task.title,
+        keyword: task.keyword,
+        note: task.note,
+        date: to,
+        is_done: false,
+        position: nextPosition++,
+        combo_id: task.comboId,
+        combo_task_id: task.comboTaskId,
+      }));
+
+    return taskRepository.createMany(tasksToCreate);
   },
 
   async updateTask(input: UpdateTaskInput) {

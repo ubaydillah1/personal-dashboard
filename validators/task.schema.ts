@@ -29,6 +29,11 @@ export const copyTaskToDateSchema = z.object({
   date: z.string().date(),
 });
 
+export const copyDayTasksSchema = z.object({
+  from: z.string().date(),
+  to: z.string().date(),
+});
+
 export const toggleTaskSchema = z.object({
   id: z.string().uuid(),
   isDone: z.enum(["true", "false"]).transform((value) => value === "true"),

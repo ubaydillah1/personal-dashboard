@@ -18,7 +18,7 @@ export function NoteEditor({ note }: { note: Note }) {
   });
 
   return (
-    <section className="flex h-[calc(100vh-3rem)] flex-col rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+    <section className="flex h-[calc(100vh-3rem)] min-w-0 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-5">
       <div className="mb-5 flex shrink-0 items-center justify-between gap-3">
         <input
           value={title}
