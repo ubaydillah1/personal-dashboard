@@ -34,6 +34,14 @@ function mapTask(row: TaskRow): Task {
 }
 
 export const taskRepository = {
+  async findById(id: string): Promise<Task | null> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase.from("tasks").select("*").eq("id", id).maybeSingle();
+
+    if (error) throw new Error(`Failed to fetch task: ${error.message}`);
+    return data ? mapTask(data as TaskRow) : null;
+  },
+
   async findByDateRange(start: string, end: string): Promise<Task[]> {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/jwt";
 import { addComboToDateSchema } from "@/validators/combo.schema";
 import {
+  copyTaskToDateSchema,
   createTaskSchema,
   taskIdSchema,
   toggleTaskSchema,
@@ -67,6 +68,16 @@ export async function deleteTaskAction(formData: FormData) {
 
   if (!parsed.success) return;
   await boardService.deleteTask(parsed.data.id);
+  revalidatePath("/board");
+  revalidatePath("/report");
+}
+
+export async function copyTaskToDateAction(taskId: string, date: string) {
+  await requireAuth();
+  const parsed = copyTaskToDateSchema.safeParse({ id: taskId, date });
+
+  if (!parsed.success) return;
+  await boardService.copyTaskToDate(parsed.data.id, parsed.data.date);
   revalidatePath("/board");
   revalidatePath("/report");
 }

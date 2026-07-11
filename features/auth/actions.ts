@@ -31,7 +31,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
     };
   }
 
-  redirect("/board");
+  redirect("/home");
 }
 
 export async function logoutAction() {

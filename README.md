@@ -65,6 +65,7 @@ Run the migration before opening the board:
 ```text
 supabase/migrations/20260710201400_create_tracker_tables.sql
 supabase/migrations/20260710204500_create_combo_groups.sql
+supabase/migrations/20260711000000_create_notes.sql
 ```
 
 With Supabase CLI:
@@ -103,6 +104,10 @@ http://localhost:3000
 Combos are reusable groups of tasks. A combo can contain multiple task rows, each with its own title, tag, and note. Adding a combo to the board copies those rows into real daily tasks for the selected day.
 
 Deleting a copied task from the board does not delete the combo. The combo is only the source preset.
+
+## Notes
+
+Notes are block-based and autosaved. The MVP supports text, bullet, todo, and link blocks. URL content that starts with `http://` or `https://` is shown as a clickable link.
 
 ## Vercel Cron Keep Alive
 

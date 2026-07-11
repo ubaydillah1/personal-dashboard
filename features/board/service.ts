@@ -1,6 +1,15 @@
 import { taskRepository } from "@/repositories/task.repository";
 import { comboRepository } from "@/repositories/combo.repository";
-import { addDays, slugify, startOfWeekMonday, toDateKey } from "@/lib/utils";
+import {
+  addDays,
+  addDaysToDateKey,
+  compareDateKeys,
+  getDateKeyRange,
+  slugify,
+  startOfWeekMonday,
+  toAppDateKey,
+  toDateKey,
+} from "@/lib/utils";
 import type { DayBoard, Task } from "./types";
 import type { CreateTaskInput, UpdateTaskInput } from "@/validators/task.schema";
 
@@ -11,6 +20,17 @@ function getKeyword(title: string, keyword?: string) {
 function getWeekDates(anchorDate = new Date()) {
   const start = startOfWeekMonday(anchorDate);
   return Array.from({ length: 7 }, (_, index) => toDateKey(addDays(start, index)));
+}
+
+function getTimelineDates(anchorDate = new Date()) {
+  const today = toAppDateKey(anchorDate);
+  return Array.from({ length: 21 }, (_, index) => addDaysToDateKey(today, index - 7));
+}
+
+function getRangeDates(start: string, end: string) {
+  const from = compareDateKeys(start, end) <= 0 ? start : end;
+  const to = compareDateKeys(start, end) <= 0 ? end : start;
+  return getDateKeyRange(from, to);
 }
 
 function shouldTemplateAppear(activeDays: number[], dateKey: string) {
@@ -28,6 +48,18 @@ function groupTasksByDate(tasks: Task[], dates: string[]): DayBoard[] {
 export const boardService = {
   async getWeekBoard(anchorDate?: Date): Promise<DayBoard[]> {
     const dates = getWeekDates(anchorDate);
+    const tasks = await taskRepository.findByDateRange(dates[0], dates[dates.length - 1]);
+    return groupTasksByDate(tasks, dates);
+  },
+
+  async getTimelineBoard(anchorDate?: Date): Promise<DayBoard[]> {
+    const dates = getTimelineDates(anchorDate);
+    const tasks = await taskRepository.findByDateRange(dates[0], dates[dates.length - 1]);
+    return groupTasksByDate(tasks, dates);
+  },
+
+  async getRangeBoard(start: string, end: string): Promise<DayBoard[]> {
+    const dates = getRangeDates(start, end);
     const tasks = await taskRepository.findByDateRange(dates[0], dates[dates.length - 1]);
     return groupTasksByDate(tasks, dates);
   },
@@ -113,6 +145,21 @@ export const boardService = {
       date: input.date,
       note: input.note ?? null,
       is_done: false,
+    });
+  },
+
+  async copyTaskToDate(id: string, date: string) {
+    const task = await taskRepository.findById(id);
+    if (!task) return null;
+
+    return taskRepository.create({
+      title: task.title,
+      keyword: task.keyword,
+      note: task.note,
+      date,
+      is_done: false,
+      combo_id: task.comboId,
+      combo_task_id: task.comboTaskId,
     });
   },
 

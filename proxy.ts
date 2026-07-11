@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE_NAME, verifyAuthToken } from "@/lib/auth/token";
 
-const protectedRoutes = ["/board", "/templates", "/report"];
+const protectedRoutes = ["/home", "/board", "/templates", "/report", "/notes"];
 
 export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -28,5 +28,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/board/:path*", "/templates/:path*", "/report/:path*"],
+  matcher: ["/home/:path*", "/board/:path*", "/templates/:path*", "/report/:path*", "/notes/:path*"],
 };

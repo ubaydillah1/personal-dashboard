@@ -6,16 +6,20 @@ export function BoardView({
   days,
   combos,
   tags,
+  today,
 }: {
   days: DayBoard[];
   combos: Combo[];
   tags: string[];
+  today: string;
 }) {
   return (
-    <div className="overflow-x-auto pb-3">
+    <div className="board-scrollbar overflow-x-auto pb-3">
       <div className="flex min-w-max gap-3">
         {days.map((day) => (
-          <DayColumn key={day.date} day={day} combos={combos} tags={tags} />
+          <div key={day.date}>
+            <DayColumn day={day} combos={combos} tags={tags} isToday={day.date === today} />
+          </div>
         ))}
       </div>
     </div>
