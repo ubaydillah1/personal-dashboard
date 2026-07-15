@@ -24,9 +24,9 @@ export function LoginForm() {
         required
       />
       {state.error ? <p className="text-sm text-red-300">{state.error}</p> : null}
-      <PendingButton type="submit" className="h-10 gap-2" disabled={isPending} pendingLabel="Signing in...">
+      <PendingButton type="submit" className="h-10 gap-2" disabled={isPending} pendingLabel="Continuing...">
         <LogIn className="size-4" />
-        {isPending ? "Signing in..." : "Sign in"}
+        {isPending ? "Continuing..." : "Continue"}
       </PendingButton>
     </form>
   );

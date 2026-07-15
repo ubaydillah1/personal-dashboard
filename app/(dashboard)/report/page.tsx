@@ -1,6 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ReportView } from "@/features/report/components/ReportView";
 import { reportService } from "@/features/report/service";
+
+export const metadata: Metadata = {
+  title: "Report",
+  description: "Review skipped todos and progress patterns.",
+};
 
 const filters = [
   { mode: "overall", label: "Overall" },

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BoardView } from "@/features/board/components/BoardView";
 import { boardService } from "@/features/board/service";
@@ -11,11 +12,17 @@ import {
 
 const DEFAULT_RANGE_DAYS = 4;
 
+export const metadata: Metadata = {
+  title: "Todo",
+  description: "Plan and track daily todos across a flexible date range.",
+};
+
 function normalizeRange(params: { from?: string; to?: string }) {
   const today = toAppDateKey();
+  const yesterday = addDaysToDateKey(today, -1);
   const defaultRange = {
-    from: today,
-    to: addDaysToDateKey(today, DEFAULT_RANGE_DAYS - 1),
+    from: yesterday,
+    to: addDaysToDateKey(yesterday, DEFAULT_RANGE_DAYS - 1),
   };
   const rawFrom = isDateKey(params.from) ? params.from : defaultRange.from;
   const rawTo = isDateKey(params.to) ? params.to : defaultRange.to;
@@ -117,7 +124,7 @@ export default async function BoardPage({
       <div>
         <h1 className="text-2xl font-semibold leading-tight text-zinc-50">Board</h1>
         <p className="mt-1 text-sm leading-6 text-zinc-400">
-          Default view starts today and shows four days. Use the arrows or pick a custom range.
+          Default view starts yesterday and shows four days. Use the arrows or pick a custom range.
         </p>
       </div>
       <BoardRangeControls from={range.from} to={range.to} />

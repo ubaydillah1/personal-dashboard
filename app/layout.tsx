@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Activity Tracker",
-  description: "Personal daily activity tracker",
+  title: {
+    default: "Tracker",
+    template: "%s | Tracker",
+  },
+  description: "A focused workspace for todos, notes, combos, and progress reports.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

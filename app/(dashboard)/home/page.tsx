@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { LayoutList, NotebookText, Sparkles } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Open your todos, notes, combos, and reports.",
+};
 
 export default function HomePage() {
   return (

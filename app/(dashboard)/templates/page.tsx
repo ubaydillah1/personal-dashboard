@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { boardService } from "@/features/board/service";
 import { ComboBuilder } from "@/features/combos/components/ComboBuilder";
 import { ComboList } from "@/features/combos/components/ComboList";
 import { comboService } from "@/features/combos/service";
+
+export const metadata: Metadata = {
+  title: "Combos",
+  description: "Create reusable todo groups and copy them into any day.",
+};
 
 export default async function TemplatesPage() {
   const [combos, tags] = await Promise.all([
