@@ -14,6 +14,10 @@ export const blogsService = {
     return blogRepository.findPublishedBySlug(slug, lang);
   },
 
+  async getPublishedTags() {
+    return blogRepository.findPublishedTags();
+  },
+
   async saveBlog(input: SaveBlogInput, coverFile?: File | null) {
     const blog = input.id
       ? await blogRepository.update({ ...input, id: input.id })

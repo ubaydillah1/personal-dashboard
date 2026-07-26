@@ -116,6 +116,31 @@ Host: localhost:3000
 
 ---
 
+### 3. List All Unique Tags
+Retrieve all unique tags associated with published blog posts. The list is automatically sorted by popularity (the tags with the highest number of posts appear first).
+
+* **URL**: `/blogs/tags`
+* **Method**: `GET`
+* **Auth Required**: No (Public)
+
+#### Example Request
+```http
+GET /blogs/tags HTTP/1.1
+Host: localhost:3000
+```
+
+#### Example Response (`200 OK`)
+```json
+[
+  "react",
+  "programming",
+  "frontend",
+  "design"
+]
+```
+
+---
+
 ## Content Block Schema (How to Render the Post Body)
 
 The `content` field returned in the **Blog Post Detail** endpoint is an array of content block objects. The frontend client (FE) should loop through the blocks and render a React/Vue/HTML component matching the block's `type`.

@@ -158,6 +158,31 @@ export const blogRepository = {
     return data ? mapPublicBlog(data as BlogRow, true, lang) : null;
   },
 
+  async findPublishedTags(): Promise<string[]> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("blogs")
+      .select("tags")
+      .eq("status", "published");
+
+    if (error) throw new Error(`Failed to fetch published tags: ${error.message}`);
+
+    const tagCounts: Record<string, number> = {};
+    (data ?? []).forEach((row) => {
+      if (Array.isArray(row.tags)) {
+        row.tags.forEach((tag) => {
+          if (tag) {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([tag]) => tag);
+  },
+
   async create(input: SaveBlogInput): Promise<Blog> {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase.from("blogs").insert(toRow(input)).select("*").single();
