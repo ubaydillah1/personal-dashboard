@@ -55,6 +55,22 @@ export function BlogDetailsForm({ blog }: { blog: Blog | null }) {
           required
         />
       </label>
+      <label className="grid gap-1 text-xs font-medium text-zinc-400">
+        English Title (Optional)
+        <input
+          name="titleEn"
+          defaultValue={blog?.titleEn ?? ""}
+          className="h-10 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-100 outline-none focus:border-sky-400"
+        />
+      </label>
+      <label className="grid gap-1 text-xs font-medium text-zinc-400">
+        English Excerpt (Optional)
+        <input
+          name="excerptEn"
+          defaultValue={blog?.excerptEn ?? ""}
+          className="h-10 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-100 outline-none focus:border-sky-400"
+        />
+      </label>
     </>
   );
 }

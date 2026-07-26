@@ -28,6 +28,7 @@ Retrieve a paginated list of published blog posts. This list returns a summary o
   | `cursor` | `number` | No | Pagination offset cursor | `0` |
   | `search` | `string` | No | Case-insensitive search filter matching post `title` | None |
   | `tag` | `string` | No | Exact case-sensitive match filter on the tags array | None |
+  | `lang` | `string` | No | Target language version: `id` (Indonesian) or `en` (English) | `id` |
 
 #### Example Request
 ```http
@@ -70,6 +71,8 @@ Retrieve full details of a specific published blog post by its unique URL slug. 
 * **Auth Required**: No (Public)
 * **Path Parameters**:
   * `slug` (string, required): The URL slug of the blog post.
+* **Query Parameters**:
+  * `lang` (string, optional): Target language version: `id` (Indonesian) or `en` (English) (default `id`). Resolves the translated title, excerpt, and content.
 
 #### Example Request
 ```http

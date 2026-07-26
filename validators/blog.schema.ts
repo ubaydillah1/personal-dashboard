@@ -62,6 +62,9 @@ export const saveBlogSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(40)).default([]),
   readingTime: z.string().trim().min(1).max(40),
   content: z.array(blogContentBlockSchema).default([]),
+  titleEn: z.string().trim().min(1).max(220).nullable().optional(),
+  excerptEn: z.string().trim().min(1).max(500).nullable().optional(),
+  contentEn: z.array(blogContentBlockSchema).default([]),
 });
 
 export const blogIdSchema = z.object({

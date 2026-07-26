@@ -21,6 +21,9 @@ type BlogRow = {
   tags: string[] | null;
   reading_time: string | null;
   content: BlogContentBlock[] | null;
+  title_en: string | null;
+  excerpt_en: string | null;
+  content_en: BlogContentBlock[] | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -41,22 +44,33 @@ function mapBlog(row: BlogRow): Blog {
     tags: row.tags ?? [],
     readingTime: row.reading_time ?? "1 min read",
     content: normalizeContent(row.content),
+    titleEn: row.title_en,
+    excerptEn: row.excerpt_en,
+    contentEn: normalizeContent(row.content_en),
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function mapPublicBlog(row: BlogRow, includeContent: boolean): PublicBlog {
+function mapPublicBlog(row: BlogRow, includeContent: boolean, lang?: string): PublicBlog {
+  const isEn = lang === "en";
+  const resolvedTitle = (isEn && row.title_en) ? row.title_en : row.title;
+  const resolvedExcerpt = (isEn && row.excerpt_en) ? row.excerpt_en : row.excerpt;
+  const rawContent = isEn ? (row.content_en ?? row.content) : row.content;
+
   return {
     id: row.id,
     slug: row.slug,
-    title: row.title,
-    excerpt: row.excerpt,
+    title: resolvedTitle,
+    excerpt: resolvedExcerpt,
     coverImage: row.cover_image ?? "",
     tags: row.tags ?? [],
     readingTime: row.reading_time ?? "1 min read",
-    content: includeContent ? normalizeContent(row.content) : [],
+    content: includeContent ? normalizeContent(rawContent) : [],
+    titleEn: row.title_en,
+    excerptEn: row.excerpt_en,
+    contentEn: normalizeContent(row.content_en),
     publishedAt: row.published_at ?? row.updated_at,
     updatedAt: row.updated_at,
   };
@@ -73,6 +87,9 @@ function toRow(input: SaveBlogInput) {
     tags: input.tags,
     reading_time: input.readingTime,
     content: input.content,
+    title_en: input.titleEn || null,
+    excerpt_en: input.excerptEn || null,
+    content_en: input.contentEn || [],
     published_at: input.status === "published" ? now : null,
   };
 }
@@ -89,14 +106,14 @@ export const blogRepository = {
     return (data ?? []).map((row) => mapBlog(row as BlogRow));
   },
 
-  async findPublishedList(limit: number, cursor: number, search?: string, tag?: string): Promise<BlogListResult> {
+  async findPublishedList(limit: number, cursor: number, search?: string, tag?: string, lang?: string): Promise<BlogListResult> {
     const supabase = getSupabaseServerClient();
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const safeCursor = Math.max(cursor, 0);
 
     let query = supabase
       .from("blogs")
-      .select("id,slug,title,excerpt,cover_image,status,tags,reading_time,content,published_at,created_at,updated_at")
+      .select("id,slug,title,excerpt,cover_image,status,tags,reading_time,content,title_en,excerpt_en,content_en,published_at,created_at,updated_at")
       .eq("status", "published");
 
     if (search && search.trim()) {
@@ -119,7 +136,7 @@ export const blogRepository = {
     const hasMore = rows.length > safeLimit;
 
     return {
-      data: pageRows.map((row) => mapPublicBlog(row, false)),
+      data: pageRows.map((row) => mapPublicBlog(row, false, lang)),
       pagination: {
         limit: safeLimit,
         nextCursor: hasMore ? String(safeCursor + safeLimit) : null,
@@ -128,7 +145,7 @@ export const blogRepository = {
     };
   },
 
-  async findPublishedBySlug(slug: string): Promise<PublicBlog | null> {
+  async findPublishedBySlug(slug: string, lang?: string): Promise<PublicBlog | null> {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blogs")
@@ -138,7 +155,7 @@ export const blogRepository = {
       .maybeSingle();
 
     if (error) throw new Error(`Failed to fetch blog: ${error.message}`);
-    return data ? mapPublicBlog(data as BlogRow, true) : null;
+    return data ? mapPublicBlog(data as BlogRow, true, lang) : null;
   },
 
   async create(input: SaveBlogInput): Promise<Blog> {

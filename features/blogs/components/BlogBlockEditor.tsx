@@ -102,7 +102,7 @@ function preventEnterSubmit(event: React.KeyboardEvent) {
   if (event.key === "Enter") event.preventDefault();
 }
 
-export function BlogBlockEditor({ initialContent }: { initialContent: BlogContentBlock[] }) {
+export function BlogBlockEditor({ initialContent, name = "content" }: { initialContent: BlogContentBlock[]; name?: string }) {
   const [blocks, setBlocks] = useState<BlogContentBlock[]>(() => getInitialBlocks(initialContent));
   const [activeBlockIndex, setActiveBlockIndex] = useState(0);
   const normalizedBlocks = useMemo(() => normalizeBlocks(blocks), [blocks]);
@@ -165,7 +165,7 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
 
   return (
     <div className="grid gap-8">
-      <input type="hidden" name="content" value={JSON.stringify(normalizedBlocks)} />
+      <input type="hidden" name={name} value={JSON.stringify(normalizedBlocks)} />
       <div className="grid gap-8">
         {blocks.map((block, index) => (
           <div

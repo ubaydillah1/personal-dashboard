@@ -21,6 +21,9 @@ export type Blog = {
   tags: string[];
   readingTime: string;
   content: BlogContentBlock[];
+  titleEn: string | null;
+  excerptEn: string | null;
+  contentEn: BlogContentBlock[];
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +53,9 @@ export type SaveBlogInput = {
   tags: string[];
   readingTime: string;
   content: BlogContentBlock[];
+  titleEn?: string | null;
+  excerptEn?: string | null;
+  contentEn?: BlogContentBlock[];
 };
 
 export type BlogImageAsset = {

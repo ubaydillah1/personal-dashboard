@@ -46,6 +46,9 @@ export async function saveBlogAction(
       tags: parseTags(getString(formData, "tags")),
       readingTime: getString(formData, "readingTime"),
       content: parseContent(getString(formData, "content")),
+      titleEn: getString(formData, "titleEn") || undefined,
+      excerptEn: getString(formData, "excerptEn") || undefined,
+      contentEn: parseContent(getString(formData, "contentEn")),
     });
 
     if (!parsed.success) {

@@ -6,12 +6,12 @@ export const blogsService = {
     return blogRepository.findAdminList();
   },
 
-  async getPublishedBlogs(limit: number, cursor: number, search?: string, tag?: string) {
-    return blogRepository.findPublishedList(limit, cursor, search, tag);
+  async getPublishedBlogs(limit: number, cursor: number, search?: string, tag?: string, lang?: string) {
+    return blogRepository.findPublishedList(limit, cursor, search, tag, lang);
   },
 
-  async getPublishedBlog(slug: string) {
-    return blogRepository.findPublishedBySlug(slug);
+  async getPublishedBlog(slug: string, lang?: string) {
+    return blogRepository.findPublishedBySlug(slug, lang);
   },
 
   async saveBlog(input: SaveBlogInput, coverFile?: File | null) {

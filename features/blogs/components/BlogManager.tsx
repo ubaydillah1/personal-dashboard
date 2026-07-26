@@ -29,10 +29,12 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
     success: false,
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [activeLanguage, setActiveLanguage] = useState<"id" | "en">("id");
 
   function selectBlog(blog: Blog | null) {
     setSelectedBlog(blog);
     setIsPreviewMode(false);
+    setActiveLanguage("id");
   }
 
   return (
@@ -120,6 +122,7 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
           {!selectedBlog ? (
             <div className="grid gap-3 md:grid-cols-2">
               <input type="hidden" name="content" value="[]" />
+              <input type="hidden" name="contentEn" value="[]" />
               <BlogDetailsForm blog={null} />
               <label className="grid gap-1 text-xs font-medium text-zinc-400 md:col-span-2">
                 Excerpt
@@ -216,27 +219,67 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
                       <select
                         name="status"
                         defaultValue={selectedBlog.status}
-                        className="border border-zinc-800 bg-black px-2 py-1 text-[11px] text-zinc-400 outline-none"
+                        className="border border-zinc-800 bg-black px-2 py-1 text-[11px] text-zinc-400 outline-none mr-2"
                       >
                         <option value="draft">Draft</option>
                         <option value="published">Published</option>
                       </select>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveLanguage("id")}
+                        className={`border px-2.5 py-0.5 text-[10px] uppercase font-bold outline-none transition ${
+                          activeLanguage === "id"
+                            ? "border-sky-400 bg-sky-400/10 text-sky-400"
+                            : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLanguage("en")}
+                        className={`border px-2.5 py-0.5 text-[10px] uppercase font-bold outline-none transition ${
+                          activeLanguage === "en"
+                            ? "border-sky-400 bg-sky-400/10 text-sky-400"
+                            : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        EN
+                      </button>
                     </div>
 
-                    <AutoResizeTextarea
-                      name="title"
-                      defaultValue={selectedBlog.title}
-                      className="blog-heading-font min-h-28 w-full resize-none border border-transparent bg-transparent text-6xl font-semibold leading-tight text-zinc-100 outline-none focus:border-zinc-900 focus:bg-zinc-950 max-md:text-4xl"
-                      required
-                    />
-                    <input type="hidden" name="slug" value={selectedBlog.slug} />
+                    <div className={activeLanguage === "id" ? "grid gap-5" : "hidden"}>
+                      <AutoResizeTextarea
+                        name="title"
+                        defaultValue={selectedBlog.title}
+                        className="blog-heading-font min-h-28 w-full resize-none border border-transparent bg-transparent text-6xl font-semibold leading-tight text-zinc-100 outline-none focus:border-zinc-900 focus:bg-zinc-950 max-md:text-4xl"
+                        required={activeLanguage === "id"}
+                      />
+                      <AutoResizeTextarea
+                        name="excerpt"
+                        defaultValue={selectedBlog.excerpt}
+                        className="blog-body-font min-h-16 w-full resize-none border border-transparent bg-transparent text-2xl leading-9 text-zinc-400 outline-none focus:border-zinc-900 focus:bg-zinc-950"
+                        required={activeLanguage === "id"}
+                      />
+                    </div>
 
-                    <AutoResizeTextarea
-                      name="excerpt"
-                      defaultValue={selectedBlog.excerpt}
-                      className="blog-body-font min-h-16 w-full resize-none border border-transparent bg-transparent text-2xl leading-9 text-zinc-400 outline-none focus:border-zinc-900 focus:bg-zinc-950"
-                      required
-                    />
+                    <div className={activeLanguage === "en" ? "grid gap-5" : "hidden"}>
+                      <AutoResizeTextarea
+                        name="titleEn"
+                        defaultValue={selectedBlog.titleEn ?? ""}
+                        className="blog-heading-font min-h-28 w-full resize-none border border-transparent bg-transparent text-6xl font-semibold leading-tight text-zinc-100 outline-none focus:border-zinc-900 focus:bg-zinc-950 max-md:text-4xl"
+                        placeholder="English Title (Optional)"
+                      />
+                      <AutoResizeTextarea
+                        name="excerptEn"
+                        defaultValue={selectedBlog.excerptEn ?? ""}
+                        className="blog-body-font min-h-16 w-full resize-none border border-transparent bg-transparent text-2xl leading-9 text-zinc-400 outline-none focus:border-zinc-900 focus:bg-zinc-950"
+                        placeholder="English Excerpt (Optional)"
+                      />
+                    </div>
+
+                    <input type="hidden" name="slug" value={selectedBlog.slug} />
 
                     <BlogTagField defaultValue={getTagsValue(selectedBlog)} compact />
 
@@ -258,10 +301,23 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
                   />
                 ) : null}
 
-                {isPreviewMode ? (
-                  <BlogContentPreview content={getContentValue(selectedBlog)} />
+                {!isPreviewMode ? (
+                  <>
+                    <div className={activeLanguage === "id" ? "block" : "hidden"}>
+                      <BlogBlockEditor key={`${selectedBlog.id}-id`} name="content" initialContent={getContentValue(selectedBlog)} />
+                    </div>
+                    <div className={activeLanguage === "en" ? "block" : "hidden"}>
+                      <BlogBlockEditor key={`${selectedBlog.id}-en`} name="contentEn" initialContent={selectedBlog.contentEn ?? []} />
+                    </div>
+                  </>
                 ) : (
-                  <BlogBlockEditor key={selectedBlog.id} initialContent={getContentValue(selectedBlog)} />
+                  <BlogContentPreview
+                    content={
+                      activeLanguage === "id"
+                        ? getContentValue(selectedBlog)
+                        : (selectedBlog.contentEn ?? [])
+                    }
+                  />
                 )}
               </div>
             </article>
