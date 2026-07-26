@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Code2, Heading1, Image, Images, LinkIcon, List, MessageSquareQuote, Plus, Trash2 } from "lucide-react";
+import { Code2, Heading1, Image, Images, List, MessageSquareQuote, Plus, Trash2, X } from "lucide-react";
 import type { BlogContentBlock } from "../types";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
+import { ListBlockEditor } from "./ListBlockEditor";
 
 type BlockType = BlogContentBlock["type"];
 
@@ -15,7 +16,6 @@ const blockOptions: Array<{ type: BlockType | "double-image"; label: string; ico
   { type: "list", label: "List", icon: List },
   { type: "quote", label: "Quote", icon: MessageSquareQuote },
   { type: "code", label: "Code", icon: Code2 },
-  { type: "link", label: "Link", icon: LinkIcon },
 ];
 
 function createBlock(type: BlockType | "double-image"): BlogContentBlock {
@@ -91,7 +91,6 @@ function getSlashCommand(value: string) {
   if (command === "/list") return createBlock("list");
   if (command === "/quote") return createBlock("quote");
   if (command === "/code") return createBlock("code");
-  if (command === "/link") return createBlock("link");
   return null;
 }
 
@@ -139,6 +138,24 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
       return;
     }
 
+    if (event.key === "Backspace" && value === "" && blocks.length > 1) {
+      event.preventDefault();
+      deleteBlock(index);
+      // Focus the previous block
+      setTimeout(() => {
+        const prevIndex = Math.max(0, index - 1);
+        const container = document.querySelector(`[data-block-index="${prevIndex}"]`);
+        const target = container?.querySelector("input, textarea") as HTMLInputElement | HTMLTextAreaElement | null;
+        if (target) {
+          target.focus();
+          if ("setSelectionRange" in target) {
+            target.setSelectionRange(target.value.length, target.value.length);
+          }
+        }
+      }, 0);
+      return;
+    }
+
     if (event.key !== "Enter") return;
     const nextBlock = getSlashCommand(value);
     if (!nextBlock) return;
@@ -154,6 +171,7 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
           <div
             key={index}
             className="group relative grid gap-3"
+            data-block-index={index}
             onFocusCapture={() => setActiveBlockIndex(index)}
           >
             {activeBlockIndex === index ? (
@@ -191,7 +209,7 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
             <div className="absolute -right-10 top-1 opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
               <button
                 type="button"
-                className="grid size-7 place-items-center rounded-md text-zinc-600 transition hover:bg-zinc-900 hover:text-red-300"
+                className="grid size-7 place-items-center rounded-md text-zinc-650 transition hover:bg-zinc-900 hover:text-red-300"
                 title="Delete block"
                 onClick={() => deleteBlock(index)}
               >
@@ -214,9 +232,22 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
                 value={block.text}
                 onChange={(event) => updateBlock(index, { ...block, text: event.currentTarget.value })}
                 onKeyDown={(event) => {
-                  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
-                    addBlockAfter(index);
+                    addBlockAfter(index, "paragraph");
+                    return;
+                  }
+                  if (event.key === "Backspace" && block.text === "" && blocks.length > 1) {
+                    event.preventDefault();
+                    deleteBlock(index);
+                    setTimeout(() => {
+                      const prevIndex = Math.max(0, index - 1);
+                      const container = document.querySelector(`[data-block-index="${prevIndex}"]`);
+                      const target = container?.querySelector("input, textarea") as HTMLInputElement | HTMLTextAreaElement | null;
+                      if (target) {
+                        target.focus();
+                      }
+                    }, 0);
                   }
                 }}
                 placeholder={block.level === 1 ? "Heading" : "Subheading"}
@@ -230,31 +261,42 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
 
             {block.type === "image" ? (
               <div className="grid gap-3">
-                <input
-                  value={block.src}
-                  onChange={(event) => updateBlock(index, { ...block, src: event.currentTarget.value })}
-                  onKeyDown={preventEnterSubmit}
-                  placeholder="Image URL"
-                  className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
-                />
-                <input
-                  value={block.alt}
-                  onChange={(event) => updateBlock(index, { ...block, alt: event.currentTarget.value })}
-                  onKeyDown={preventEnterSubmit}
-                  placeholder="Alt text"
-                  className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
-                />
-                <input
-                  value={block.caption ?? ""}
-                  onChange={(event) => updateBlock(index, { ...block, caption: event.currentTarget.value })}
-                  onKeyDown={preventEnterSubmit}
-                  placeholder="Caption"
-                  className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
-                />
-                {block.src ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={block.src} alt={block.alt} className="max-h-[480px] w-full rounded-2xl object-cover" />
-                ) : null}
+                {!block.src ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 bg-zinc-950/20 py-8 text-center text-zinc-500">
+                    <Image className="size-8 text-zinc-700" />
+                    <p className="mt-2 text-xs">Enter the Image URL below to load the preview</p>
+                  </div>
+                ) : (
+                  <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={block.src} alt={block.alt} className="max-h-[400px] w-full object-cover" />
+                  </div>
+                )}
+                <div className="grid gap-2 border border-zinc-800 bg-zinc-950/40 p-3 rounded-xl">
+                  <div className="flex gap-2">
+                    <input
+                      value={block.src}
+                      onChange={(event) => updateBlock(index, { ...block, src: event.currentTarget.value })}
+                      onKeyDown={preventEnterSubmit}
+                      placeholder="Image URL"
+                      className={inputClassName("h-9 rounded-md px-2 text-xs text-zinc-100 bg-zinc-950")}
+                    />
+                    <input
+                      value={block.alt}
+                      onChange={(event) => updateBlock(index, { ...block, alt: event.currentTarget.value })}
+                      onKeyDown={preventEnterSubmit}
+                      placeholder="Alt text"
+                      className={inputClassName("h-9 rounded-md px-2 text-xs text-zinc-150 bg-zinc-950")}
+                    />
+                  </div>
+                  <input
+                    value={block.caption ?? ""}
+                    onChange={(event) => updateBlock(index, { ...block, caption: event.currentTarget.value })}
+                    onKeyDown={preventEnterSubmit}
+                    placeholder="Caption (optional)"
+                    className={inputClassName("h-9 rounded-md px-2 text-xs text-zinc-150 bg-zinc-950")}
+                  />
+                </div>
               </div>
             ) : null}
 
@@ -262,7 +304,18 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
               <div className="grid gap-3">
                 <div className="grid gap-3 md:grid-cols-2">
                   {block.items.map((item, itemIndex) => (
-                    <div key={itemIndex} className="grid gap-2 rounded-lg bg-zinc-950/80 p-3">
+                    <div key={itemIndex} className="grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                      {!item.src ? (
+                        <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-850 bg-zinc-950/20 text-center text-zinc-655">
+                          <Images className="size-6 text-zinc-700" />
+                          <p className="mt-1 text-[10px]">Image #{itemIndex + 1}</p>
+                        </div>
+                      ) : (
+                        <div className="relative h-32 overflow-hidden rounded-lg bg-zinc-950">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.src} alt={item.alt} className="size-full object-cover" />
+                        </div>
+                      )}
                       <input
                         value={item.src}
                         onChange={(event) => {
@@ -273,7 +326,7 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
                         }}
                         onKeyDown={preventEnterSubmit}
                         placeholder="Image URL"
-                        className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
+                        className={inputClassName("h-8 rounded-md px-2 text-xs text-zinc-100 bg-zinc-950")}
                       />
                       <input
                         value={item.alt}
@@ -285,23 +338,30 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
                         }}
                         onKeyDown={preventEnterSubmit}
                         placeholder="Alt text"
-                        className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
+                        className={inputClassName("h-8 rounded-md px-2 text-xs text-zinc-150 bg-zinc-950")}
                       />
-                      {item.src ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.src} alt={item.alt} className="h-56 w-full rounded-xl object-cover" />
-                      ) : null}
                     </div>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-fit items-center gap-2 rounded-md px-2 text-xs font-medium text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
-                  onClick={() => updateBlock(index, { ...block, items: [...block.items, { src: "", alt: "" }] })}
-                >
-                  <Plus className="size-4" />
-                  Add image
-                </button>
+                <div className="flex justify-between items-center mt-1">
+                  <button
+                    type="button"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-800 px-3 text-xs font-medium text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200"
+                    onClick={() => updateBlock(index, { ...block, items: [...block.items, { src: "", alt: "" }] })}
+                  >
+                    <Plus className="size-3.5" />
+                    Add gallery image
+                  </button>
+                  {block.items.length > 2 && (
+                    <button
+                      type="button"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                      onClick={() => updateBlock(index, { ...block, items: block.items.slice(0, -1) })}
+                    >
+                      Remove last image
+                    </button>
+                  )}
+                </div>
               </div>
             ) : null}
 
@@ -314,6 +374,18 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
                     event.preventDefault();
                     addBlockAfter(index);
                   }
+                  if (event.key === "Backspace" && block.text === "" && blocks.length > 1) {
+                    event.preventDefault();
+                    deleteBlock(index);
+                    setTimeout(() => {
+                      const prevIndex = Math.max(0, index - 1);
+                      const container = document.querySelector(`[data-block-index="${prevIndex}"]`);
+                      const target = container?.querySelector("input, textarea") as HTMLInputElement | HTMLTextAreaElement | null;
+                      if (target) {
+                        target.focus();
+                      }
+                    }, 0);
+                  }
                 }}
                 placeholder="Quote"
                 className={inputClassName("blog-body-font min-h-12 resize-none border-l-2 border-sky-400 px-4 py-2 text-2xl italic leading-9 text-zinc-200")}
@@ -321,34 +393,45 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
             ) : null}
 
             {block.type === "code" ? (
-              <AutoResizeTextarea
-                value={block.code}
-                onChange={(event) => updateBlock(index, { ...block, code: event.currentTarget.value })}
-                onKeyDown={(event) => {
-                  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                    event.preventDefault();
-                    addBlockAfter(index);
-                  }
-                }}
-                placeholder="const x = 1;"
-                className={inputClassName("min-h-20 resize-none rounded-lg border-zinc-800 bg-zinc-950 px-3 py-3 font-mono text-sm leading-6 text-emerald-200")}
-              />
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                <div className="flex items-center justify-between border-b border-zinc-900 bg-zinc-900/50 px-4 py-2 text-xs text-zinc-500">
+                  <span className="font-mono">Code Editor</span>
+                </div>
+                <AutoResizeTextarea
+                  value={block.code}
+                  onChange={(event) => updateBlock(index, { ...block, code: event.currentTarget.value })}
+                  onKeyDown={(event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                      event.preventDefault();
+                      addBlockAfter(index);
+                    }
+                    if (event.key === "Backspace" && block.code === "" && blocks.length > 1) {
+                      event.preventDefault();
+                      deleteBlock(index);
+                      setTimeout(() => {
+                        const prevIndex = Math.max(0, index - 1);
+                        const container = document.querySelector(`[data-block-index="${prevIndex}"]`);
+                        const target = container?.querySelector("input, textarea") as HTMLInputElement | HTMLTextAreaElement | null;
+                        if (target) {
+                          target.focus();
+                        }
+                      }, 0);
+                    }
+                  }}
+                  placeholder="// write your code here..."
+                  className={inputClassName("min-h-24 resize-none px-4 py-3 font-mono text-sm leading-6 text-emerald-300 placeholder:text-zinc-700 bg-transparent")}
+                />
+              </div>
             ) : null}
 
             {block.type === "list" ? (
-              <AutoResizeTextarea
-                value={block.items.join("\n")}
-                onChange={(event) =>
-                  updateBlock(index, { ...block, items: event.currentTarget.value.split("\n") })
-                }
-                onKeyDown={(event) => {
-                  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                    event.preventDefault();
-                    addBlockAfter(index);
-                  }
-                }}
-                placeholder="One item per line"
-                className={inputClassName("blog-body-font min-h-10 resize-none rounded-md px-0 py-1 text-[23px] leading-9 text-zinc-300")}
+              <ListBlockEditor
+                block={block}
+                isActive={activeBlockIndex === index}
+                onChange={(updatedBlock) => updateBlock(index, updatedBlock)}
+                onAddBlockAfter={() => addBlockAfter(index)}
+                onDeleteBlock={() => deleteBlock(index)}
+                blockIndex={index}
               />
             ) : null}
 
@@ -370,28 +453,9 @@ export function BlogBlockEditor({ initialContent }: { initialContent: BlogConten
               </div>
             ) : null}
 
-            {block.type === "link" ? (
-              <div className="grid gap-2 md:grid-cols-2">
-                <input
-                  value={block.href}
-                  onChange={(event) => updateBlock(index, { ...block, href: event.currentTarget.value })}
-                  onKeyDown={preventEnterSubmit}
-                  placeholder="https://..."
-                  className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
-                />
-                <input
-                  value={block.label}
-                  onChange={(event) => updateBlock(index, { ...block, label: event.currentTarget.value })}
-                  onKeyDown={preventEnterSubmit}
-                  placeholder="Open resource"
-                  className={inputClassName("h-10 rounded-md px-2 text-sm text-zinc-100")}
-                />
-              </div>
-            ) : null}
           </div>
         ))}
       </div>
-
     </div>
   );
 }
