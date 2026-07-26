@@ -13,6 +13,14 @@ This document describes the public-facing API endpoints for the blog system, inc
 
 ---
 
+## Localization / Multi-language Support
+The blog system supports content in both **Indonesian (`id`)** and **English (`en`)**:
+* **Language Parameter**: All endpoints accept a `lang` query parameter (value: `id` or `en`).
+* **Default Behavior**: If the `lang` parameter is omitted, it defaults to `id` (Indonesian).
+* **Dynamic Translation Resolution**: When `lang=en` is provided, the API automatically resolves the localized fields (`title`, `excerpt`, and the rich text `content` block array) into English, mapping them onto their standard property keys (i.e. `title` will hold the English title, `content` will hold the English content blocks, etc.) so that the frontend rendering logic remains exactly the same.
+
+---
+
 ## Endpoints
 
 ### 1. List Published Blogs

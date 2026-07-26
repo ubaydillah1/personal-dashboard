@@ -20,9 +20,10 @@ export async function GET(request: Request) {
   const cursor = Number(url.searchParams.get("cursor") ?? 0);
   const search = url.searchParams.get("search") ?? undefined;
   const tag = url.searchParams.get("tag") ?? undefined;
+  const lang = url.searchParams.get("lang") ?? undefined;
 
   try {
-    const result = await blogsService.getPublishedBlogs(limit, cursor, search, tag);
+    const result = await blogsService.getPublishedBlogs(limit, cursor, search, tag, lang);
     return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
     return NextResponse.json(

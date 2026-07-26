@@ -72,7 +72,8 @@ export async function saveBlogAction(
     };
   }
 
-  redirect(`/blog-admin?post=${savedBlogId}`);
+  const activeLanguage = getString(formData, "activeLanguage") || "id";
+  redirect(`/blog-admin?post=${savedBlogId}&lang=${activeLanguage}`);
 }
 
 export async function deleteBlogAction(formData: FormData) {

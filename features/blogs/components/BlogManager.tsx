@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useEffect } from "react";
+import { useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Plus, Save, Trash2, Eye, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,11 @@ export function BlogManager({
   initialLanguage?: "id" | "en";
 }) {
   const router = useRouter();
+
+  const [prevBlogs, setPrevBlogs] = useState(blogs);
+  const [prevSelectedBlogId, setPrevSelectedBlogId] = useState(initialSelectedBlogId);
+  const [prevInitialLanguage, setPrevInitialLanguage] = useState(initialLanguage);
+
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(
     blogs.find((blog) => blog.id === initialSelectedBlogId) ?? null,
   );
@@ -41,14 +46,17 @@ export function BlogManager({
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [activeLanguage, setActiveLanguage] = useState<"id" | "en">(initialLanguage);
 
-  useEffect(() => {
-    setActiveLanguage(initialLanguage);
-  }, [initialLanguage]);
-
-  // Synchronize selectedBlog state if initialSelectedBlogId props changes or list updates
-  useEffect(() => {
+  // Synchronize state during render if props change to avoid cascading renders in useEffect
+  if (blogs !== prevBlogs || initialSelectedBlogId !== prevSelectedBlogId) {
+    setPrevBlogs(blogs);
+    setPrevSelectedBlogId(initialSelectedBlogId);
     setSelectedBlog(blogs.find((blog) => blog.id === initialSelectedBlogId) ?? null);
-  }, [initialSelectedBlogId, blogs]);
+  }
+
+  if (initialLanguage !== prevInitialLanguage) {
+    setPrevInitialLanguage(initialLanguage);
+    setActiveLanguage(initialLanguage);
+  }
 
   function selectBlog(blog: Blog | null) {
     setSelectedBlog(blog);
@@ -111,6 +119,7 @@ export function BlogManager({
       <div className="grid min-w-0 gap-4">
         <form key={selectedBlog?.id ?? "new"} action={formAction} className={selectedBlog ? "min-w-0" : "rounded-lg border border-zinc-800 bg-zinc-900 p-4"}>
           <input type="hidden" name="id" value={selectedBlog?.id ?? ""} />
+          <input type="hidden" name="activeLanguage" value={activeLanguage} />
           <div className={selectedBlog ? "fixed right-6 top-6 z-40 flex gap-2" : "mb-4 flex flex-wrap items-center justify-between gap-3"}>
             <div>
               {selectedBlog ? null : (

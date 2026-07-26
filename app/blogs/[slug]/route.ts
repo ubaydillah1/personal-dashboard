@@ -14,11 +14,13 @@ export async function OPTIONS() {
   });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const url = new URL(request.url);
+  const lang = url.searchParams.get("lang") ?? undefined;
 
   try {
-    const blog = await blogsService.getPublishedBlog(slug);
+    const blog = await blogsService.getPublishedBlog(slug, lang);
     if (!blog) {
       return NextResponse.json({ error: "Blog not found." }, { status: 404, headers: corsHeaders });
     }
