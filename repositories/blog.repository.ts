@@ -89,15 +89,25 @@ export const blogRepository = {
     return (data ?? []).map((row) => mapBlog(row as BlogRow));
   },
 
-  async findPublishedList(limit: number, cursor: number): Promise<BlogListResult> {
+  async findPublishedList(limit: number, cursor: number, search?: string, tag?: string): Promise<BlogListResult> {
     const supabase = getSupabaseServerClient();
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const safeCursor = Math.max(cursor, 0);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("blogs")
       .select("id,slug,title,excerpt,cover_image,status,tags,reading_time,content,published_at,created_at,updated_at")
-      .eq("status", "published")
+      .eq("status", "published");
+
+    if (search && search.trim()) {
+      query = query.ilike("title", `%${search.trim()}%`);
+    }
+
+    if (tag && tag.trim()) {
+      query = query.contains("tags", [tag.trim()]);
+    }
+
+    const { data, error } = await query
       .order("published_at", { ascending: false })
       .order("id", { ascending: false })
       .range(safeCursor, safeCursor + safeLimit);

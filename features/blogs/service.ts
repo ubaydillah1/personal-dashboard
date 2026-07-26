@@ -6,8 +6,8 @@ export const blogsService = {
     return blogRepository.findAdminList();
   },
 
-  async getPublishedBlogs(limit: number, cursor: number) {
-    return blogRepository.findPublishedList(limit, cursor);
+  async getPublishedBlogs(limit: number, cursor: number, search?: string, tag?: string) {
+    return blogRepository.findPublishedList(limit, cursor, search, tag);
   },
 
   async getPublishedBlog(slug: string) {
