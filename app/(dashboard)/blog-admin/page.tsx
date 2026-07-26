@@ -10,9 +10,10 @@ export const metadata: Metadata = {
 export default async function BlogAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ post?: string }>;
+  searchParams: Promise<{ post?: string; lang?: string }>;
 }) {
-  const { post } = await searchParams;
+  const { post, lang } = await searchParams;
   const blogs = await blogsService.getAdminBlogs();
-  return <BlogManager blogs={blogs} initialSelectedBlogId={post} />;
+  const initialLanguage = (lang === "en" || lang === "id") ? lang : "id";
+  return <BlogManager blogs={blogs} initialSelectedBlogId={post} initialLanguage={initialLanguage} />;
 }

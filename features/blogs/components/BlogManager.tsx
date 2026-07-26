@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Plus, Save, Trash2, Eye, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Blog } from "../types";
@@ -21,7 +22,16 @@ function getContentValue(blog: Blog | null) {
   return blog?.content ?? [];
 }
 
-export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; initialSelectedBlogId?: string }) {
+export function BlogManager({
+  blogs,
+  initialSelectedBlogId,
+  initialLanguage = "id",
+}: {
+  blogs: Blog[];
+  initialSelectedBlogId?: string;
+  initialLanguage?: "id" | "en";
+}) {
+  const router = useRouter();
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(
     blogs.find((blog) => blog.id === initialSelectedBlogId) ?? null,
   );
@@ -29,12 +39,33 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
     success: false,
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [activeLanguage, setActiveLanguage] = useState<"id" | "en">("id");
+  const [activeLanguage, setActiveLanguage] = useState<"id" | "en">(initialLanguage);
+
+  useEffect(() => {
+    setActiveLanguage(initialLanguage);
+  }, [initialLanguage]);
+
+  // Synchronize selectedBlog state if initialSelectedBlogId props changes or list updates
+  useEffect(() => {
+    setSelectedBlog(blogs.find((blog) => blog.id === initialSelectedBlogId) ?? null);
+  }, [initialSelectedBlogId, blogs]);
 
   function selectBlog(blog: Blog | null) {
     setSelectedBlog(blog);
     setIsPreviewMode(false);
     setActiveLanguage("id");
+    if (blog) {
+      router.push(`/blog-admin?post=${blog.id}&lang=id`);
+    } else {
+      router.push(`/blog-admin`);
+    }
+  }
+
+  function selectLanguage(lang: "id" | "en") {
+    setActiveLanguage(lang);
+    if (selectedBlog) {
+      router.push(`/blog-admin?post=${selectedBlog.id}&lang=${lang}`);
+    }
   }
 
   return (
@@ -227,7 +258,7 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
 
                       <button
                         type="button"
-                        onClick={() => setActiveLanguage("id")}
+                        onClick={() => selectLanguage("id")}
                         className={`border px-2.5 py-0.5 text-[10px] uppercase font-bold outline-none transition ${
                           activeLanguage === "id"
                             ? "border-sky-400 bg-sky-400/10 text-sky-400"
@@ -238,7 +269,7 @@ export function BlogManager({ blogs, initialSelectedBlogId }: { blogs: Blog[]; i
                       </button>
                       <button
                         type="button"
-                        onClick={() => setActiveLanguage("en")}
+                        onClick={() => selectLanguage("en")}
                         className={`border px-2.5 py-0.5 text-[10px] uppercase font-bold outline-none transition ${
                           activeLanguage === "en"
                             ? "border-sky-400 bg-sky-400/10 text-sky-400"
