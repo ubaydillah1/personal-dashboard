@@ -178,9 +178,11 @@ export const blogRepository = {
       }
     });
 
-    return Object.entries(tagCounts)
+    const sortedTags = Object.entries(tagCounts)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([tag]) => tag);
+
+    return ["all", ...sortedTags];
   },
 
   async create(input: SaveBlogInput): Promise<Blog> {

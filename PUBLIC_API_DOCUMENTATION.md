@@ -117,7 +117,7 @@ Host: localhost:3000
 ---
 
 ### 3. List All Unique Tags
-Retrieve all unique tags associated with published blog posts. The list is automatically sorted by popularity (the tags with the highest number of posts appear first).
+Retrieve all unique tags associated with published blog posts. The list always begins with `"all"` (useful for rendering an unfiltered tab/button on the frontend), followed by the actual tags sorted by popularity (the tags with the highest number of posts appear first).
 
 * **URL**: `/blogs/tags`
 * **Method**: `GET`
@@ -132,6 +132,7 @@ Host: localhost:3000
 #### Example Response (`200 OK`)
 ```json
 [
+  "all",
   "react",
   "programming",
   "frontend",
