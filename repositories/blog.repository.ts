@@ -182,7 +182,7 @@ export const blogRepository = {
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([tag]) => tag);
 
-    return ["all", ...sortedTags];
+    return sortedTags;
   },
 
   async create(input: SaveBlogInput): Promise<Blog> {
