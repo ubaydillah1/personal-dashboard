@@ -66,7 +66,7 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
       {content.map((block, index) => {
         if (block.type === "paragraph") {
           return (
-            <p key={index} className="blog-body-font text-lg leading-8 text-zinc-300">
+            <p key={index} className="blog-body-font text-lg leading-8 text-zinc-300 whitespace-pre-line">
               {renderTextWithLinks(block.text)}
             </p>
           );
@@ -116,7 +116,7 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
 
         if (block.type === "quote") {
           return (
-            <blockquote key={index} className="border-l-2 border-sky-400 pl-4 text-zinc-200">
+            <blockquote key={index} className="border-l-2 border-sky-400 pl-4 text-zinc-200 whitespace-pre-line">
               {renderTextWithLinks(block.text)}
             </blockquote>
           );
@@ -145,7 +145,7 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
           return (
             <div key={index} className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-4">
               <p className="font-semibold text-amber-200">{block.title}</p>
-              <p className="mt-1 text-amber-100/80">{renderTextWithLinks(block.text)}</p>
+              <p className="mt-1 text-amber-100/80 whitespace-pre-line">{renderTextWithLinks(block.text)}</p>
             </div>
           );
         }

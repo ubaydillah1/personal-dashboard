@@ -231,12 +231,14 @@ export function BlogManager({
                     </div>
 
                     <h1 className="blog-heading-font text-6xl font-semibold leading-tight text-zinc-100 max-md:text-4xl">
-                      {selectedBlog.title}
+                      {activeLanguage === "id" ? selectedBlog.title : (selectedBlog.titleEn || selectedBlog.title)}
                     </h1>
 
-                    <p className="blog-body-font text-2xl leading-9 text-zinc-400">
-                      {selectedBlog.excerpt}
-                    </p>
+                    {((activeLanguage === "id" ? selectedBlog.excerpt : (selectedBlog.excerptEn || selectedBlog.excerpt))?.trim()) ? (
+                      <p className="blog-body-font text-2xl leading-9 text-zinc-400 whitespace-pre-line">
+                        {activeLanguage === "id" ? selectedBlog.excerpt : (selectedBlog.excerptEn || selectedBlog.excerpt)}
+                      </p>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-2">
                       {selectedBlog.tags.map((tag) => (
