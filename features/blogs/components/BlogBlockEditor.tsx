@@ -57,14 +57,14 @@ function normalizeBlocks(blocks: BlogContentBlock[]) {
       if (block.type === "quote") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
       if (block.type === "code") return block.code.trim() ? block : null;
       if (block.type === "image") {
-        return block.src.trim() && block.alt.trim()
+        return block.src.trim()
           ? { ...block, src: block.src.trim(), alt: block.alt.trim(), caption: block.caption?.trim() || undefined }
           : null;
       }
       if (block.type === "gallery") {
         const items = block.items
           .map((item) => ({ src: item.src.trim(), alt: item.alt.trim() }))
-          .filter((item) => item.src && item.alt);
+          .filter((item) => item.src);
         return items.length > 0 ? { ...block, items } : null;
       }
       if (block.type === "list") {

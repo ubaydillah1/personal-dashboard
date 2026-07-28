@@ -33,12 +33,12 @@ export const blogContentBlockSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("image"),
     src: absoluteUrlSchema,
-    alt: z.string().trim().min(1),
+    alt: z.string().trim().default(""),
     caption: z.string().trim().optional(),
   }),
   z.object({
     type: z.literal("gallery"),
-    items: z.array(z.object({ src: absoluteUrlSchema, alt: z.string().trim().min(1) })).min(1),
+    items: z.array(z.object({ src: absoluteUrlSchema, alt: z.string().trim().default("") })).min(1),
   }),
   z.object({
     type: z.literal("quote"),
