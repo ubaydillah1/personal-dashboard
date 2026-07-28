@@ -66,7 +66,7 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
       {content.map((block, index) => {
         if (block.type === "paragraph") {
           return (
-            <p key={index} className="blog-body-font text-lg leading-8 text-zinc-300 whitespace-pre-line">
+            <p key={index} className="blog-body-font text-[23px] leading-9 text-zinc-300 whitespace-pre-line">
               {renderTextWithLinks(block.text)}
             </p>
           );
@@ -79,8 +79,8 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
               key={index}
               className={
                 block.level === 1
-                  ? "blog-heading-font pt-3 text-4xl font-semibold leading-tight text-zinc-50"
-                  : "blog-heading-font pt-2 text-2xl font-semibold leading-tight text-zinc-50"
+                  ? "blog-heading-font pt-3 text-5xl font-semibold leading-tight text-zinc-50"
+                  : "blog-heading-font pt-2 text-3xl font-semibold leading-tight text-zinc-50"
               }
             >
               {renderTextWithLinks(block.text)}
@@ -116,7 +116,7 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
 
         if (block.type === "quote") {
           return (
-            <blockquote key={index} className="border-l-2 border-sky-400 pl-4 text-zinc-200 whitespace-pre-line">
+            <blockquote key={index} className="border-l-2 border-sky-400 pl-4 text-2xl italic leading-9 text-zinc-200 whitespace-pre-line">
               {renderTextWithLinks(block.text)}
             </blockquote>
           );
@@ -135,7 +135,9 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
           return (
             <ListTag key={index} className={block.style === "ordered" ? "list-decimal pl-5 space-y-1" : "list-disc pl-5 space-y-1"}>
               {block.items.map((item, itemIndex) => (
-                <li key={`${item}-${itemIndex}`}>{renderTextWithLinks(item)}</li>
+                <li key={`${item}-${itemIndex}`} className="blog-body-font text-[18px] leading-7 text-zinc-300">
+                  {renderTextWithLinks(item)}
+                </li>
               ))}
             </ListTag>
           );
