@@ -24,13 +24,26 @@ type BlogRow = {
   title_en: string | null;
   excerpt_en: string | null;
   content_en: BlogContentBlock[] | null;
+  blog_view_counts?: { view_count: number | string | null } | Array<{ view_count: number | string | null }> | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
+type BlogViewIncrementRow = {
+  blog_id: string;
+  slug: string;
+  view_count: number | string;
+};
+
 function normalizeContent(content: BlogContentBlock[] | null) {
   return Array.isArray(content) ? content : [];
+}
+
+function getViewCount(row: BlogRow) {
+  const relation = row.blog_view_counts;
+  const count = Array.isArray(relation) ? relation[0]?.view_count : relation?.view_count;
+  return Number(count ?? 0);
 }
 
 function mapBlog(row: BlogRow): Blog {
@@ -47,6 +60,7 @@ function mapBlog(row: BlogRow): Blog {
     titleEn: row.title_en,
     excerptEn: row.excerpt_en,
     contentEn: normalizeContent(row.content_en),
+    viewCount: getViewCount(row),
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -71,10 +85,17 @@ function mapPublicBlog(row: BlogRow, includeContent: boolean, lang?: string): Pu
     titleEn: row.title_en,
     excerptEn: row.excerpt_en,
     contentEn: normalizeContent(row.content_en),
+    viewCount: getViewCount(row),
     publishedAt: row.published_at ?? row.updated_at,
     updatedAt: row.updated_at,
   };
 }
+
+const blogSelect =
+  "*,blog_view_counts(view_count)";
+
+const publicBlogSelect =
+  "id,slug,title,excerpt,cover_image,status,tags,reading_time,content,title_en,excerpt_en,content_en,published_at,created_at,updated_at,blog_view_counts(view_count)";
 
 function toRow(input: SaveBlogInput) {
   const now = new Date().toISOString();
@@ -99,7 +120,7 @@ export const blogRepository = {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blogs")
-      .select("*")
+      .select(blogSelect)
       .order("updated_at", { ascending: false });
 
     if (error) throw new Error(`Failed to fetch blogs: ${error.message}`);
@@ -113,7 +134,7 @@ export const blogRepository = {
 
     let query = supabase
       .from("blogs")
-      .select("id,slug,title,excerpt,cover_image,status,tags,reading_time,content,title_en,excerpt_en,content_en,published_at,created_at,updated_at")
+      .select(publicBlogSelect)
       .eq("status", "published");
 
     if (search && search.trim()) {
@@ -149,13 +170,23 @@ export const blogRepository = {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
       .from("blogs")
-      .select("*")
+      .select(blogSelect)
       .eq("slug", slug)
       .eq("status", "published")
       .maybeSingle();
 
     if (error) throw new Error(`Failed to fetch blog: ${error.message}`);
     return data ? mapPublicBlog(data as BlogRow, true, lang) : null;
+  },
+
+  async incrementPublishedView(slug: string): Promise<number | null> {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase.rpc("increment_blog_view", { p_slug: slug });
+
+    if (error) throw new Error(`Failed to record blog view: ${error.message}`);
+
+    const row = Array.isArray(data) ? (data[0] as BlogViewIncrementRow | undefined) : undefined;
+    return row ? Number(row.view_count) : null;
   },
 
   async findPublishedTags(): Promise<string[]> {
@@ -187,7 +218,7 @@ export const blogRepository = {
 
   async create(input: SaveBlogInput): Promise<Blog> {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase.from("blogs").insert(toRow(input)).select("*").single();
+    const { data, error } = await supabase.from("blogs").insert(toRow(input)).select(blogSelect).single();
 
     if (error) throw new Error(`Failed to create blog: ${error.message}`);
     return mapBlog(data as BlogRow);
@@ -196,7 +227,7 @@ export const blogRepository = {
   async update(input: SaveBlogInput & { id: string }): Promise<Blog> {
     const supabase = getSupabaseServerClient();
     const row = toRow(input);
-    const { data, error } = await supabase.from("blogs").update(row).eq("id", input.id).select("*").single();
+    const { data, error } = await supabase.from("blogs").update(row).eq("id", input.id).select(blogSelect).single();
 
     if (error) throw new Error(`Failed to update blog: ${error.message}`);
     return mapBlog(data as BlogRow);
@@ -228,7 +259,7 @@ export const blogRepository = {
 
   async setCoverImage(id: string, coverImage: string): Promise<Blog> {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase.from("blogs").update({ cover_image: coverImage }).eq("id", id).select("*").single();
+    const { data, error } = await supabase.from("blogs").update({ cover_image: coverImage }).eq("id", id).select(blogSelect).single();
 
     if (error) throw new Error(`Failed to update blog cover: ${error.message}`);
     return mapBlog(data as BlogRow);

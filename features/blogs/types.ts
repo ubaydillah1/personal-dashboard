@@ -25,6 +25,7 @@ export type Blog = {
   titleEn: string | null;
   excerptEn: string | null;
   contentEn: BlogContentBlock[];
+  viewCount: number;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
