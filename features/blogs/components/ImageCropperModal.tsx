@@ -134,27 +134,6 @@ function drawCroppedImage(
   }
 }
 
-function imageToPngBlob(image: HTMLImageElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      reject(new Error("Could not get 2D context"));
-      return;
-    }
-    ctx.drawImage(image, 0, 0);
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        reject(new Error("Canvas conversion failed"));
-      }
-    }, "image/png");
-  });
-}
-
 export function ImageCropperModal({
   file,
   onCropComplete,
@@ -217,16 +196,7 @@ export function ImageCropperModal({
     if (isAiRemoving) return;
     setIsAiRemoving(true);
     try {
-      let inputSource: Blob | File = file;
-      if (imgRef.current) {
-        try {
-          inputSource = await imageToPngBlob(imgRef.current);
-        } catch (e) {
-          console.warn("Failed to convert image to PNG, falling back to original file:", e);
-        }
-      }
-      
-      const processedBlob = await removeBackground(inputSource);
+      const processedBlob = await removeBackground(file);
       const transparentUrl = URL.createObjectURL(processedBlob);
       setImgSrc(transparentUrl);
       setIsAiRemoved(true);

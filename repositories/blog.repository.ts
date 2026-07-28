@@ -56,7 +56,7 @@ function mapBlog(row: BlogRow): Blog {
 function mapPublicBlog(row: BlogRow, includeContent: boolean, lang?: string): PublicBlog {
   const isEn = lang === "en";
   const resolvedTitle = (isEn && row.title_en) ? row.title_en : row.title;
-  const resolvedExcerpt = (isEn && row.excerpt_en) ? row.excerpt_en : row.excerpt;
+  const resolvedExcerpt = isEn ? (row.excerpt_en || "") : row.excerpt;
   const rawContent = isEn ? (row.content_en ?? row.content) : row.content;
 
   return {

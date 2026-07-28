@@ -166,6 +166,39 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
           );
         }
 
+        if (block.type === "diagram") {
+          const isHorizontal = block.orientation === "horizontal";
+          const lines = (block.text || "")
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => {
+              if (!line) return false;
+              // Filter out pure arrow lines/symbols
+              return !/^[↓→➔➔➔\->\=>\s]+$/.test(line);
+            });
+
+          if (lines.length === 0) return null;
+
+          return (
+            <div key={index} className="my-6 rounded-2xl border border-zinc-800/80 bg-gradient-to-br from-zinc-900/60 to-zinc-950 p-6 font-mono text-[15px] leading-8 text-zinc-300 select-none shadow-xl flex flex-col items-center justify-center text-center">
+              <div className={`flex ${isHorizontal ? "flex-row flex-wrap items-center justify-center gap-x-4 gap-y-3" : "flex-col items-center gap-y-3"} w-full select-none cursor-default`}>
+                {lines.map((line, idx) => (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && (
+                      <div className={`text-zinc-500 font-bold flex items-center justify-center select-none ${isHorizontal ? "text-xl px-1 animate-pulse" : "text-lg my-0.5 animate-pulse"}`}>
+                        {isHorizontal ? "→" : "↓"}
+                      </div>
+                    )}
+                    <div className="px-5 py-2.5 rounded-xl bg-zinc-900/30 border border-zinc-800/50 shadow-sm max-w-full break-words text-zinc-200 hover:border-zinc-700/80 transition duration-300">
+                      {renderTextWithLinks(line)}
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
         return (
           <a key={index} href={block.href} className="inline-flex text-sky-400 underline-offset-4 hover:underline font-medium">
             {block.label}

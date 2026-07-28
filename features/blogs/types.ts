@@ -9,7 +9,8 @@ export type BlogContentBlock =
   | { type: "code"; code: string }
   | { type: "list"; style: "ordered" | "unordered"; items: string[] }
   | { type: "callout"; title: string; text: string }
-  | { type: "link"; href: string; label: string };
+  | { type: "link"; href: string; label: string }
+  | { type: "diagram"; text: string; orientation?: "vertical" | "horizontal" };
 
 export type Blog = {
   id: string;

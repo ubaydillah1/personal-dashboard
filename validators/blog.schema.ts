@@ -63,6 +63,11 @@ export const blogContentBlockSchema = z.discriminatedUnion("type", [
     href: absoluteUrlSchema,
     label: z.string().trim().min(1),
   }),
+  z.object({
+    type: z.literal("diagram"),
+    text: z.string().trim().min(1),
+    orientation: z.enum(["vertical", "horizontal"]).optional(),
+  }),
 ]);
 
 export const saveBlogSchema = z.object({
@@ -74,7 +79,10 @@ export const saveBlogSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must use lowercase letters, numbers, and hyphens.")
     .max(180),
   title: z.string().trim().min(1).max(220),
-  excerpt: z.string().trim().min(1).max(500),
+  excerpt: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? "-" : val),
+    z.string().trim().min(1).max(500)
+  ),
   coverImage: z.preprocess(
     (val) => cleanUrl(typeof val === "string" ? val : ""),
     z.string().url("Must be a valid URL").optional().or(z.literal(""))

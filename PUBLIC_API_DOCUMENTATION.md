@@ -289,3 +289,22 @@ Displays an highlighted info/warning alert card.
     "text": "React 19 automatically loads scripts async! No need for custom loaders."
   }
   ```
+
+#### 9. Diagram / Concept Flow (`type: "diagram"`)
+Displays a visual concept flow or text-based diagram (e.g. data flows, vector maps) inside a beautiful background container.
+* **Schema**:
+  ```typescript
+  { type: "diagram"; text: string }
+  ```
+* **Example**:
+  ```json
+  {
+    "type": "diagram",
+    "text": "\"I love cats\"\n↓\nEmbedding Model\n↓\n[0.23, -0.81, 0.54, ...]"
+  }
+  ```
+
+> [!IMPORTANT]
+> **FE Diagram Block Implementation Guideline**:
+> * **Styling**: Render this block using a centered monospace container with a premium dark-mode gradient background (e.g. a dark gray card).
+> * **Copy Protection**: Enforce **non-copyable/non-selectable** text styles (using CSS classes like `select-none` or `user-select: none;`) and omit any "copy-to-clipboard" buttons. This ensures visual diagram elements act as structural illustrations rather than copyable raw text.

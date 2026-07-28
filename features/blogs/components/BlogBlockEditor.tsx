@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Code2, Heading1, Image, Images, List, MessageSquareQuote, Plus, Trash2, X } from "lucide-react";
+import { Code2, Heading1, Image, Images, List, MessageSquareQuote, Plus, Trash2, Workflow, X } from "lucide-react";
 import type { BlogContentBlock } from "../types";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
 import { ListBlockEditor } from "./ListBlockEditor";
@@ -16,6 +16,7 @@ const blockOptions: Array<{ type: BlockType | "double-image"; label: string; ico
   { type: "list", label: "List", icon: List },
   { type: "quote", label: "Quote", icon: MessageSquareQuote },
   { type: "code", label: "Code", icon: Code2 },
+  { type: "diagram", label: "Diagram", icon: Workflow },
 ];
 
 function createBlock(type: BlockType | "double-image"): BlogContentBlock {
@@ -36,6 +37,7 @@ function createBlock(type: BlockType | "double-image"): BlogContentBlock {
   if (type === "list") return { type: "list", style: "unordered", items: [""] };
   if (type === "callout") return { type: "callout", title: "", text: "" };
   if (type === "link") return { type: "link", href: "", label: "" };
+  if (type === "diagram") return { type: "diagram", text: "" };
   return { type: "paragraph", text: "" };
 }
 
@@ -77,6 +79,7 @@ function normalizeBlocks(blocks: BlogContentBlock[]) {
       if (block.type === "link") {
         return block.href.trim() && block.label.trim() ? { ...block, href: block.href.trim(), label: block.label.trim() } : null;
       }
+      if (block.type === "diagram") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
       return null;
     })
     .filter((block): block is BlogContentBlock => Boolean(block));
@@ -91,6 +94,7 @@ function getSlashCommand(value: string) {
   if (command === "/list") return createBlock("list");
   if (command === "/quote") return createBlock("quote");
   if (command === "/code") return createBlock("code");
+  if (command === "/diagram" || command === "/flow") return createBlock("diagram");
   return null;
 }
 
@@ -198,7 +202,7 @@ export function BlogBlockEditor({ initialContent, name = "content" }: { initialC
                   className="inline-flex h-8 items-center gap-2 rounded-md px-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-900 hover:text-zinc-50"
                   onMouseDown={(event) => {
                     event.preventDefault();
-                    addBlock("paragraph");
+                    addBlockAfter(index, "paragraph");
                   }}
                 >
                   <Plus className="size-4" />
@@ -454,6 +458,39 @@ export function BlogBlockEditor({ initialContent, name = "content" }: { initialC
                   onChange={(event) => updateBlock(index, { ...block, text: event.currentTarget.value })}
                   placeholder="Callout text"
                   className={inputClassName("min-h-10 resize-none rounded-md px-2 py-2 text-amber-100/80")}
+                />
+              </div>
+            ) : null}
+
+            {block.type === "diagram" ? (
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex items-center justify-between border-b border-zinc-900 bg-zinc-900/30 px-4 py-2 text-[10px] uppercase font-bold text-zinc-500 mb-3 tracking-wider select-none">
+                  <span>Diagram / Concept Flow</span>
+                  <div className="flex items-center gap-1.5 bg-zinc-950 p-0.5 rounded-md border border-zinc-800">
+                    <button
+                      type="button"
+                      onClick={() => updateBlock(index, { ...block, orientation: "vertical" })}
+                      className={`px-2.5 py-1 rounded text-[9px] font-semibold transition ${(!block.orientation || block.orientation === "vertical") ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                    >
+                      Down ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateBlock(index, { ...block, orientation: "horizontal" })}
+                      className={`px-2.5 py-1 rounded text-[9px] font-semibold transition ${(block.orientation === "horizontal") ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                    >
+                      Right →
+                    </button>
+                  </div>
+                </div>
+                <AutoResizeTextarea
+                  value={block.text}
+                  onChange={(event) => updateBlock(index, { ...block, text: event.currentTarget.value })}
+                  placeholder={`Enter flow items line-by-line (arrows will be added automatically), e.g.:
+I love cats
+Embedding Model
+[0.23, -0.81, 0.54, ...]`}
+                  className={inputClassName("min-h-24 resize-none px-4 py-3 font-mono text-sm leading-6 text-zinc-300 placeholder:text-zinc-700 bg-transparent")}
                 />
               </div>
             ) : null}

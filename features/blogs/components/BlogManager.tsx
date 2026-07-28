@@ -234,11 +234,16 @@ export function BlogManager({
                       {activeLanguage === "id" ? selectedBlog.title : (selectedBlog.titleEn || selectedBlog.title)}
                     </h1>
 
-                    {((activeLanguage === "id" ? selectedBlog.excerpt : (selectedBlog.excerptEn || selectedBlog.excerpt))?.trim()) ? (
-                      <p className="blog-body-font text-2xl leading-9 text-zinc-400 whitespace-pre-line">
-                        {activeLanguage === "id" ? selectedBlog.excerpt : (selectedBlog.excerptEn || selectedBlog.excerpt)}
-                      </p>
-                    ) : null}
+                    {(() => {
+                      const exc = activeLanguage === "id" ? selectedBlog.excerpt : selectedBlog.excerptEn;
+                      const cleaned = exc?.trim();
+                      if (!cleaned || cleaned === "-") return null;
+                      return (
+                        <p className="blog-body-font text-2xl leading-9 text-zinc-400 whitespace-pre-line">
+                          {exc}
+                        </p>
+                      );
+                    })()}
 
                     <div className="flex flex-wrap gap-2">
                       {selectedBlog.tags.map((tag) => (
