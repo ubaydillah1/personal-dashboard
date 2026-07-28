@@ -204,6 +204,11 @@ Displays a full-width image with an optional caption.
 
 > [!TIP]
 > **FE Image Transparency Guideline**: Images (both `coverImage` in the post summary and `image` block types) can be uploaded as transparent PNGs (e.g. from the editor's AI background removal tool). The FE should avoid styling `<img>` containers with solid backgrounds (such as forcing a white background) so that transparent images blend seamlessly with the website's dark/light mode themes.
+>
+> [!IMPORTANT]
+> **FE Image Aspect Ratio & Size Guideline**:
+> * **Landscape Images**: Should be rendered wide or full-width as appropriate.
+> * **Square or Portrait Images** (not cover images): The FE should **not** stretch these to full-width, as this will make them overly large and degrade quality. Instead, they should be centered on the page with a sensible maximum width or height constraint (e.g., using classes like `max-w-md mx-auto` or `max-h-[500px] w-auto mx-auto`) to keep them visually balanced.
 
 #### 4. Image Gallery (`type: "gallery"`)
 Displays two or more images side-by-side (rendered on the FE as a responsive CSS grid, e.g. `grid grid-cols-1 md:grid-cols-2 gap-4`).
