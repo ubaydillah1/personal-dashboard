@@ -90,10 +90,10 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
 
         if (block.type === "image") {
           return (
-            <figure key={index} className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+            <figure key={index} className="overflow-hidden rounded-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={block.src} alt={block.alt} className="max-h-80 w-full object-cover" />
-              {block.caption ? <figcaption className="px-3 py-2 text-xs text-zinc-500">{block.caption}</figcaption> : null}
+              <img src={block.src} alt={block.alt} className="mx-auto block h-auto max-h-[500px] max-w-full rounded-lg" />
+              {block.caption ? <figcaption className="mt-2 text-center text-xs text-zinc-500 italic">{block.caption}</figcaption> : null}
             </figure>
           );
         }

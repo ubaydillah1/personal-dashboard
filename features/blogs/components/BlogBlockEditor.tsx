@@ -267,9 +267,14 @@ export function BlogBlockEditor({ initialContent, name = "content" }: { initialC
                     <p className="mt-2 text-xs">Enter the Image URL below to load the preview</p>
                   </div>
                 ) : (
-                  <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                  <div className="relative overflow-hidden rounded-xl bg-zinc-950/20">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={block.src} alt={block.alt} className="max-h-[400px] w-full object-cover" />
+                    <img src={block.src} alt={block.alt} className="mx-auto block h-auto max-h-[500px] max-w-full rounded-lg" />
+                    {block.caption ? (
+                      <div className="mt-2 text-center text-xs text-zinc-400 italic">
+                        {block.caption}
+                      </div>
+                    ) : null}
                   </div>
                 )}
                 <div className="grid gap-2 border border-zinc-800 bg-zinc-950/40 p-3 rounded-xl">

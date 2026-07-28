@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { BlogImageAsset } from "../types";
 import { uploadBlogImageAction, deleteBlogImageAction } from "../actions";
+import { ImageCropperModal } from "./ImageCropperModal";
 
 interface UploadItem {
   id: string;
@@ -39,6 +40,7 @@ export function BlogImageLibrary({ images }: { images: BlogImageAsset[] }) {
   const [deletingPath, setDeletingPath] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [filesToCrop, setFilesToCrop] = useState<File[]>([]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -73,7 +75,7 @@ export function BlogImageLibrary({ images }: { images: BlogImageAsset[] }) {
         file.type.startsWith("image/"),
       );
       if (files.length > 0) {
-        handleUploads(files);
+        setFilesToCrop((prev) => [...prev, ...files]);
       }
     }
   };
@@ -151,7 +153,7 @@ export function BlogImageLibrary({ images }: { images: BlogImageAsset[] }) {
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      handleUploads(files);
+      setFilesToCrop((prev) => [...prev, ...files]);
       e.target.value = ""; // Reset input so same file can be uploaded again
     }
   };
@@ -535,6 +537,18 @@ export function BlogImageLibrary({ images }: { images: BlogImageAsset[] }) {
           </>
         )}
       </div>
+      {filesToCrop.length > 0 && (
+        <ImageCropperModal
+          file={filesToCrop[0]}
+          onClose={() => {
+            setFilesToCrop((prev) => prev.slice(1));
+          }}
+          onCropComplete={(croppedFile) => {
+            handleUploads([croppedFile]);
+            setFilesToCrop((prev) => prev.slice(1));
+          }}
+        />
+      )}
     </div>
   );
 }

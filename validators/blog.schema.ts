@@ -1,6 +1,24 @@
 import { z } from "zod";
 
-const absoluteUrlSchema = z.string().trim().url();
+function cleanUrl(val: string): string {
+  const trimmed = val.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("://")) {
+    return `https${trimmed}`;
+  }
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+const absoluteUrlSchema = z.preprocess(
+  (val) => cleanUrl(typeof val === "string" ? val : ""),
+  z.string().url("Must be a valid URL")
+);
 
 export const blogContentBlockSchema = z.discriminatedUnion("type", [
   z.object({
@@ -57,7 +75,10 @@ export const saveBlogSchema = z.object({
     .max(180),
   title: z.string().trim().min(1).max(220),
   excerpt: z.string().trim().min(1).max(500),
-  coverImage: z.string().trim().url().optional().or(z.literal("")),
+  coverImage: z.preprocess(
+    (val) => cleanUrl(typeof val === "string" ? val : ""),
+    z.string().url("Must be a valid URL").optional().or(z.literal(""))
+  ),
   status: z.enum(["draft", "published"]),
   tags: z.array(z.string().trim().min(1).max(40)).default([]),
   readingTime: z.string().trim().min(1).max(40),
