@@ -202,6 +202,9 @@ Displays a full-width image with an optional caption.
   }
   ```
 
+> [!TIP]
+> **FE Image Transparency Guideline**: Images (both `coverImage` in the post summary and `image` block types) can be uploaded as transparent PNGs (e.g. from the editor's AI background removal tool). The FE should avoid styling `<img>` containers with solid backgrounds (such as forcing a white background) so that transparent images blend seamlessly with the website's dark/light mode themes.
+
 #### 4. Image Gallery (`type: "gallery"`)
 Displays two or more images side-by-side (rendered on the FE as a responsive CSS grid, e.g. `grid grid-cols-1 md:grid-cols-2 gap-4`).
 * **Schema**:
