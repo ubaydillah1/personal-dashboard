@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, forwardRef, useImperativeHandle } from "react";
 import { Code2, Heading1, Image, Images, List, MessageSquareQuote, Plus, Trash2, Workflow, X } from "lucide-react";
 import type { BlogContentBlock } from "../types";
 import { AutoResizeTextarea } from "./AutoResizeTextarea";
@@ -50,36 +50,40 @@ function replaceBlock(blocks: BlogContentBlock[], index: number, block: BlogCont
 }
 
 function normalizeBlocks(blocks: BlogContentBlock[]) {
-  return blocks
+  return (blocks || [])
     .map((block): BlogContentBlock | null => {
-      if (block.type === "paragraph") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
-      if (block.type === "heading") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
-      if (block.type === "quote") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
-      if (block.type === "code") return block.code.trim() ? block : null;
+      if (!block) return null;
+      if (block.type === "paragraph") return (block.text || "").trim() ? { ...block, text: block.text.trim() } : null;
+      if (block.type === "heading") return (block.text || "").trim() ? { ...block, text: block.text.trim() } : null;
+      if (block.type === "quote") return (block.text || "").trim() ? { ...block, text: block.text.trim() } : null;
+      if (block.type === "code") return (block.code || "").trim() ? block : null;
       if (block.type === "image") {
-        return block.src.trim()
-          ? { ...block, src: block.src.trim(), alt: block.alt.trim(), caption: block.caption?.trim() || undefined }
-          : null;
+        const src = (block.src || "").trim();
+        const alt = (block.alt || "").trim();
+        const caption = block.caption?.trim() || undefined;
+        return src ? { ...block, src, alt, caption } : null;
       }
       if (block.type === "gallery") {
-        const items = block.items
-          .map((item) => ({ src: item.src.trim(), alt: item.alt.trim() }))
+        const items = (block.items || [])
+          .map((item) => ({ src: (item.src || "").trim(), alt: (item.alt || "").trim() }))
           .filter((item) => item.src);
         return items.length > 0 ? { ...block, items } : null;
       }
       if (block.type === "list") {
-        const items = block.items.map((item) => item.trim()).filter(Boolean);
+        const items = (block.items || []).map((item) => (item || "").trim()).filter(Boolean);
         return items.length > 0 ? { ...block, items } : null;
       }
       if (block.type === "callout") {
-        return block.title.trim() && block.text.trim()
-          ? { ...block, title: block.title.trim(), text: block.text.trim() }
-          : null;
+        const title = (block.title || "").trim();
+        const text = (block.text || "").trim();
+        return title && text ? { ...block, title, text } : null;
       }
       if (block.type === "link") {
-        return block.href.trim() && block.label.trim() ? { ...block, href: block.href.trim(), label: block.label.trim() } : null;
+        const href = (block.href || "").trim();
+        const label = (block.label || "").trim();
+        return href && label ? { ...block, href, label } : null;
       }
-      if (block.type === "diagram") return block.text.trim() ? { ...block, text: block.text.trim() } : null;
+      if (block.type === "diagram") return (block.text || "").trim() ? { ...block, text: block.text.trim() } : null;
       return null;
     })
     .filter((block): block is BlogContentBlock => Boolean(block));
@@ -106,10 +110,21 @@ function preventEnterSubmit(event: React.KeyboardEvent) {
   if (event.key === "Enter") event.preventDefault();
 }
 
-export function BlogBlockEditor({ initialContent, name = "content" }: { initialContent: BlogContentBlock[]; name?: string }) {
-  const [blocks, setBlocks] = useState<BlogContentBlock[]>(() => getInitialBlocks(initialContent));
-  const [activeBlockIndex, setActiveBlockIndex] = useState(0);
-  const normalizedBlocks = useMemo(() => normalizeBlocks(blocks), [blocks]);
+export interface BlogBlockEditorRef {
+  getBlocks: () => BlogContentBlock[];
+  setBlocks: (blocks: BlogContentBlock[]) => void;
+}
+
+export const BlogBlockEditor = forwardRef<BlogBlockEditorRef, { initialContent: BlogContentBlock[]; name?: string }>(
+  function BlogBlockEditor({ initialContent, name = "content" }, ref) {
+    const [blocks, setBlocks] = useState<BlogContentBlock[]>(() => getInitialBlocks(initialContent));
+    const [activeBlockIndex, setActiveBlockIndex] = useState(0);
+    const normalizedBlocks = useMemo(() => normalizeBlocks(blocks), [blocks]);
+
+    useImperativeHandle(ref, () => ({
+      getBlocks: () => blocks,
+      setBlocks: (newBlocks) => setBlocks(newBlocks),
+    }), [blocks]);
 
   function addBlock(type: BlockType | "double-image" = "paragraph") {
     setBlocks((currentBlocks) => [...currentBlocks, createBlock(type)]);
@@ -174,7 +189,13 @@ export function BlogBlockEditor({ initialContent, name = "content" }: { initialC
         {blocks.map((block, index) => (
           <div
             key={index}
-            className="group relative grid gap-3"
+            className={`group relative grid gap-3 ${
+              block.type === "heading"
+                ? block.level === 1
+                  ? "mt-10 first:mt-0"
+                  : "mt-8 first:mt-0"
+                : ""
+            }`}
             data-block-index={index}
             onFocusCapture={() => setActiveBlockIndex(index)}
           >
@@ -500,4 +521,4 @@ Embedding Model
       </div>
     </div>
   );
-}
+});

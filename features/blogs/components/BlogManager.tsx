@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Plus, Save, Trash2, Eye, Edit3 } from "lucide-react";
+import { ArrowLeft, FileText, Plus, Save, Trash2, Eye, Edit3, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Blog } from "../types";
 import { deleteBlogAction, saveBlogAction } from "../actions";
-import { BlogBlockEditor } from "./BlogBlockEditor";
+import { BlogBlockEditor, type BlogBlockEditorRef } from "./BlogBlockEditor";
 import { BlogContentPreview } from "./BlogContentPreview";
 import { BlogDetailsForm } from "./BlogDetailsForm";
 import { BlogTagField } from "./BlogTagField";
@@ -45,6 +45,60 @@ export function BlogManager({
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [activeLanguage, setActiveLanguage] = useState<"id" | "en">(initialLanguage);
+
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [prevState, setPrevState] = useState(state);
+  const [saveCounter, setSaveCounter] = useState(0);
+
+  const idEditorRef = useRef<BlogBlockEditorRef>(null);
+  const enEditorRef = useRef<BlogBlockEditorRef>(null);
+
+  const handleCopyFromEn = () => {
+    const enBlocks = enEditorRef.current?.getBlocks();
+    if (!enBlocks || enBlocks.length === 0) {
+      alert("Konten Bahasa Inggris kosong atau tidak dapat ditemukan.");
+      return;
+    }
+    const confirmCopy = window.confirm(
+      "Perubahan saat ini di konten Bahasa Indonesia akan hilang dan digantikan oleh konten Bahasa Inggris. Apakah Anda yakin?"
+    );
+    if (confirmCopy) {
+      const cloned = JSON.parse(JSON.stringify(enBlocks));
+      idEditorRef.current?.setBlocks(cloned);
+    }
+  };
+
+  const handleCopyFromId = () => {
+    const idBlocks = idEditorRef.current?.getBlocks();
+    if (!idBlocks || idBlocks.length === 0) {
+      alert("Konten Bahasa Indonesia kosong atau tidak dapat ditemukan.");
+      return;
+    }
+    const confirmCopy = window.confirm(
+      "Perubahan saat ini di konten Bahasa Inggris akan hilang dan digantikan oleh konten Bahasa Indonesia. Apakah Anda yakin?"
+    );
+    if (confirmCopy) {
+      const cloned = JSON.parse(JSON.stringify(idBlocks));
+      enEditorRef.current?.setBlocks(cloned);
+    }
+  };
+
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.success) {
+      setToast({ type: "success", message: "Saved successfully!" });
+      setSaveCounter((c) => c + 1);
+    } else if (state.error) {
+      setToast({ type: "error", message: state.error });
+    }
+  }
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), toast.type === "success" ? 3000 : 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Synchronize state during render if props change to avoid cascading renders in useEffect
   if (blogs !== prevBlogs || initialSelectedBlogId !== prevSelectedBlogId) {
@@ -148,16 +202,6 @@ export function BlogManager({
             </div>
           </div>
 
-          {state.error ? (
-            <p className="mb-3 rounded-md border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200">
-              {state.error}
-            </p>
-          ) : null}
-          {state.success ? (
-            <p className="mb-3 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
-              Saved.
-            </p>
-          ) : null}
 
           {!selectedBlog ? (
             <div className="grid gap-3 md:grid-cols-2">
@@ -294,6 +338,26 @@ export function BlogManager({
                       >
                         EN
                       </button>
+
+                      {activeLanguage === "id" ? (
+                        <button
+                          type="button"
+                          onClick={handleCopyFromEn}
+                          className="border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 px-2 py-0.5 text-[10px] uppercase font-bold outline-none transition inline-flex items-center gap-1.5 ml-2"
+                        >
+                          <Copy className="size-2.5" />
+                          Copy from EN
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleCopyFromId}
+                          className="border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 px-2 py-0.5 text-[10px] uppercase font-bold outline-none transition inline-flex items-center gap-1.5 ml-2"
+                        >
+                          <Copy className="size-2.5" />
+                          Copy from ID
+                        </button>
+                      )}
                     </div>
 
                     <div className={activeLanguage === "id" ? "grid gap-5" : "hidden"}>
@@ -351,10 +415,20 @@ export function BlogManager({
                 {!isPreviewMode ? (
                   <>
                     <div className={activeLanguage === "id" ? "block" : "hidden"}>
-                      <BlogBlockEditor key={`${selectedBlog.id}-id`} name="content" initialContent={getContentValue(selectedBlog)} />
+                      <BlogBlockEditor
+                        ref={idEditorRef}
+                        key={`${selectedBlog.id}-id-${saveCounter}`}
+                        name="content"
+                        initialContent={getContentValue(selectedBlog)}
+                      />
                     </div>
                     <div className={activeLanguage === "en" ? "block" : "hidden"}>
-                      <BlogBlockEditor key={`${selectedBlog.id}-en`} name="contentEn" initialContent={selectedBlog.contentEn ?? []} />
+                      <BlogBlockEditor
+                        ref={enEditorRef}
+                        key={`${selectedBlog.id}-en-${saveCounter}`}
+                        name="contentEn"
+                        initialContent={selectedBlog.contentEn ?? []}
+                      />
                     </div>
                   </>
                 ) : (
@@ -378,6 +452,28 @@ export function BlogManager({
             </Button>
           </form>
         ) : null}
+
+        {toast && (
+          <div
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-lg border px-4 py-3 shadow-xl backdrop-blur-sm transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
+              toast.type === "success"
+                ? "border-emerald-500/30 bg-zinc-950/90 text-emerald-400"
+                : "border-red-500/30 bg-zinc-950/90 text-red-400"
+            }`}
+          >
+            <div className={`size-2 shrink-0 rounded-full animate-ping ${
+              toast.type === "success" ? "bg-emerald-500" : "bg-red-500"
+            }`} />
+            <span className="text-sm font-medium">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="ml-2 text-zinc-500 hover:text-zinc-300 transition text-base leading-none"
+            >
+              &times;
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -124,7 +124,7 @@ export function ListBlockEditor({
               }}
               placeholder="List item"
               className={inputClassName(
-                "blog-body-font min-h-8 resize-none rounded-md px-0 py-1 text-[18px] leading-7 text-zinc-300 placeholder:text-zinc-700 bg-transparent"
+                "blog-body-font min-h-8 resize-none rounded-md px-0 py-1 text-[23px] leading-9 text-zinc-300 placeholder:text-zinc-700 bg-transparent"
               )}
             />
             {isActive && block.items.length > 1 && (

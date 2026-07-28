@@ -93,8 +93,8 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
               key={index}
               className={
                 block.level === 1
-                  ? "blog-heading-font pt-3 text-5xl font-semibold leading-tight text-zinc-50"
-                  : "blog-heading-font pt-2 text-3xl font-semibold leading-tight text-zinc-50"
+                  ? "blog-heading-font mt-12 first:mt-0 text-5xl font-semibold leading-tight text-zinc-50"
+                  : "blog-heading-font mt-10 first:mt-0 text-3xl font-semibold leading-tight text-zinc-50"
               }
             >
               {renderTextWithLinks(block.text)}
@@ -147,9 +147,9 @@ export function BlogContentPreview({ content }: { content: BlogContentBlock[] })
         if (block.type === "list") {
           const ListTag = block.style === "ordered" ? "ol" : "ul";
           return (
-            <ListTag key={index} className={block.style === "ordered" ? "list-decimal pl-5 space-y-1" : "list-disc pl-5 space-y-1"}>
+            <ListTag key={index} className={block.style === "ordered" ? "list-decimal my-6 pl-8 space-y-4 marker:text-zinc-600" : "list-disc my-8 pl-8 space-y-4 marker:text-zinc-600"}>
               {block.items.map((item, itemIndex) => (
-                <li key={`${item}-${itemIndex}`} className="blog-body-font text-[18px] leading-7 text-zinc-300">
+                <li key={`${item}-${itemIndex}`} className="blog-body-font text-[23px] leading-9 text-zinc-300 whitespace-pre-line">
                   {renderTextWithLinks(item)}
                 </li>
               ))}
