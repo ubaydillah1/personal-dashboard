@@ -145,13 +145,14 @@ Host: localhost:3000
 
 The `content` field returned in the **Blog Post Detail** endpoint is an array of content block objects. The frontend client (FE) should loop through the blocks and render a React/Vue/HTML component matching the block's `type`.
 
-### 🔗 Inline Links in Text
+### 🔗 Inline Links & Formatting in Text
 All text fields inside `paragraph`, `heading`, `quote`, `list` (items), and `callout` blocks can contain:
 1. **Raw URLs** (e.g. `https://google.com` or `http://bing.com`).
 2. **Markdown Links** (e.g. `[Google Search](https://google.com)`).
+3. **Bold Text** (e.g. `**bold text**` using double asterisks).
 
 > [!TIP]
-> **FE Implementation Guideline**: Use a parser function (e.g., regex-based splitter) to automatically convert plain links and markdown links inside these text fields into blue clickable HTML anchor elements (`<a href="..." class="text-sky-400 hover:underline">...</a>`).
+> **FE Implementation Guideline**: Use a parser function to automatically convert plain links, markdown links, and double-asterisk bold tags inside these text fields into blue clickable HTML anchor elements (`<a href="..." class="text-sky-400 hover:underline">...</a>`) and bold wrappers (`<strong>...</strong>`).
 
 ---
 

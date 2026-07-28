@@ -3,20 +3,34 @@
 import React from "react";
 import type { BlogContentBlock } from "../types";
 
+function renderTextWithBold(text: string): React.ReactNode[] {
+  if (!text) return [];
+
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const boldText = part.slice(2, -2);
+      return (
+        <strong key={index} className="font-bold text-zinc-50">
+          {boldText}
+        </strong>
+      );
+    }
+    return part;
+  });
+}
+
 export function renderTextWithLinks(text: string): React.ReactNode[] {
   if (!text) return [];
 
-  // Match markdown links: [label](url)
-  // Match plain URLs: https://... or http://...
   const regex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s)]+)/g;
 
   const parts = text.split(regex);
   const elements: React.ReactNode[] = [];
 
   for (let i = 0; i < parts.length; i += 5) {
-    // Add text before match
     if (parts[i]) {
-      elements.push(parts[i]);
+      elements.push(...renderTextWithBold(parts[i]));
     }
 
     if (i + 1 < parts.length) {
@@ -34,7 +48,7 @@ export function renderTextWithLinks(text: string): React.ReactNode[] {
             rel="noopener noreferrer"
             className="text-sky-400 hover:text-sky-300 hover:underline font-medium"
           >
-            {markdownLabel}
+            {renderTextWithBold(markdownLabel)}
           </a>
         );
       } else if (plainUrl) {
