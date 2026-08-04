@@ -14,8 +14,8 @@ export const blogsService = {
     return blogRepository.findPublishedBySlug(slug, lang);
   },
 
-  async recordPublishedBlogView(slug: string) {
-    return blogRepository.incrementPublishedView(slug);
+  async recordPublishedBlogView(slug: string, visitorId: string) {
+    return blogRepository.incrementPublishedView(slug, visitorId);
   },
 
   async getPublishedTags() {

@@ -18,12 +18,22 @@ export async function POST(_request: Request, { params }: { params: Promise<{ sl
   const { slug } = await params;
 
   try {
-    const viewCount = await blogsService.recordPublishedBlogView(slug);
-    if (viewCount === null) {
+    const body = await _request.json().catch(() => null);
+    const visitorId = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+
+    if (visitorId.length < 16 || visitorId.length > 256) {
+      return NextResponse.json(
+        { error: "visitorId is required and must be 16-256 characters." },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+
+    const result = await blogsService.recordPublishedBlogView(slug, visitorId);
+    if (!result) {
       return NextResponse.json({ error: "Blog not found." }, { status: 404, headers: corsHeaders });
     }
 
-    return NextResponse.json({ slug, viewCount }, { headers: corsHeaders });
+    return NextResponse.json({ slug, ...result }, { headers: corsHeaders });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to record blog view." },

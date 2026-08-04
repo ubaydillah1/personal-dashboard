@@ -34,6 +34,7 @@ type BlogViewIncrementRow = {
   blog_id: string;
   slug: string;
   view_count: number | string;
+  counted: boolean;
 };
 
 function normalizeContent(content: BlogContentBlock[] | null) {
@@ -179,14 +180,17 @@ export const blogRepository = {
     return data ? mapPublicBlog(data as BlogRow, true, lang) : null;
   },
 
-  async incrementPublishedView(slug: string): Promise<number | null> {
+  async incrementPublishedView(slug: string, visitorId: string): Promise<{ viewCount: number; counted: boolean } | null> {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase.rpc("increment_blog_view", { p_slug: slug });
+    const { data, error } = await supabase.rpc("increment_blog_view", {
+      p_slug: slug,
+      p_visitor_key: visitorId,
+    });
 
     if (error) throw new Error(`Failed to record blog view: ${error.message}`);
 
     const row = Array.isArray(data) ? (data[0] as BlogViewIncrementRow | undefined) : undefined;
-    return row ? Number(row.view_count) : null;
+    return row ? { viewCount: Number(row.view_count), counted: row.counted } : null;
   },
 
   async findPublishedTags(): Promise<string[]> {
