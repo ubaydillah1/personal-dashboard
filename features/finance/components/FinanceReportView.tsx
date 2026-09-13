@@ -151,17 +151,17 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
 
       {/* Daily Cashflow Timeline Bar Chart */}
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 shadow-xl backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
           <div>
             <h3 className="text-sm font-semibold text-zinc-100">Tren Cashflow Harian</h3>
             <p className="text-xs text-zinc-500">Perbandingan pemasukan vs pengeluaran tiap hari</p>
           </div>
           <div className="flex items-center gap-3 text-[11px]">
-            <span className="flex items-center gap-1 text-emerald-400">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
               <span className="size-2.5 rounded-sm bg-emerald-500 inline-block" />
               Pemasukan
             </span>
-            <span className="flex items-center gap-1 text-red-400">
+            <span className="flex items-center gap-1.5 text-red-400 font-medium">
               <span className="size-2.5 rounded-sm bg-red-500 inline-block" />
               Pengeluaran
             </span>
@@ -170,32 +170,59 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
 
         {/* Chart Bars Scrollable */}
         <div className="overflow-x-auto pb-2">
-          <div className="min-w-[600px] h-48 flex items-end gap-1.5 pt-6 border-b border-zinc-800">
-            {summary.dailyTrend.map((day) => {
+          <div className="min-w-[640px] h-56 flex items-end gap-1 pt-16 pb-1 border-b border-zinc-800 relative">
+            {summary.dailyTrend.map((day, idx, arr) => {
               const incomeHeight = maxDailyValue > 0 ? (day.income / maxDailyValue) * 100 : 0;
               const expenseHeight = maxDailyValue > 0 ? (day.expense / maxDailyValue) * 100 : 0;
               const isHovered = hoveredDay === day.date;
 
+              // Smart positioning agar tooltip tidak terpotong di tepi kiri/kanan
+              const alignClass =
+                idx < 3
+                  ? "left-0 translate-x-0"
+                  : idx > arr.length - 4
+                  ? "right-0 translate-x-0"
+                  : "left-1/2 -translate-x-1/2";
+
               return (
                 <div
                   key={day.date}
-                  className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer"
+                  className={cn(
+                    "flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer rounded-lg p-0.5 transition-colors",
+                    isHovered ? "bg-zinc-800/40" : "hover:bg-zinc-800/20"
+                  )}
                   onMouseEnter={() => setHoveredDay(day.date)}
                   onMouseLeave={() => setHoveredDay(null)}
                 >
-                  {/* Tooltip on hover */}
+                  {/* Tooltip on hover (Ditaruh di top-1 dengan headroom luas, anti terpotong) */}
                   {isHovered && (
-                    <div className="absolute bottom-full mb-2 z-20 whitespace-nowrap rounded-lg border border-zinc-700 bg-zinc-950 p-2 text-[10px] shadow-xl">
-                      <p className="font-semibold text-zinc-200">{day.date} ({day.dayLabel})</p>
-                      {day.income > 0 && (
-                        <p className="text-emerald-400 font-mono">+{formatCurrency(day.income)}</p>
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute top-1 z-30 flex flex-col items-center whitespace-nowrap rounded-xl border border-zinc-700/90 bg-zinc-950/95 px-3 py-1.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100",
+                        alignClass
                       )}
-                      {day.expense > 0 && (
-                        <p className="text-red-400 font-mono">-{formatCurrency(day.expense)}</p>
-                      )}
-                      {day.income === 0 && day.expense === 0 && (
-                        <p className="text-zinc-500">Tidak ada transaksi</p>
-                      )}
+                    >
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-100">
+                        <span>Tgl {day.displayDate}</span>
+                        <span className="text-[10px] font-normal text-zinc-400">({day.dayLabel})</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2.5 font-mono text-[10px]">
+                        {day.income > 0 && (
+                          <span className="text-emerald-400 font-semibold">
+                            +{formatCurrency(day.income)}
+                          </span>
+                        )}
+                        {day.expense > 0 && (
+                          <span className="text-red-400 font-semibold">
+                            -{formatCurrency(day.expense)}
+                          </span>
+                        )}
+                        {day.income === 0 && day.expense === 0 && (
+                          <span className="text-zinc-500 font-sans text-[10px]">
+                            Tidak ada transaksi
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -214,7 +241,12 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
                   </div>
 
                   {/* Date Label */}
-                  <span className="text-[9px] text-zinc-500 mt-1 truncate group-hover:text-zinc-300">
+                  <span
+                    className={cn(
+                      "text-[9px] mt-1.5 truncate transition-colors",
+                      isHovered ? "font-bold text-sky-400" : "text-zinc-500 group-hover:text-zinc-300"
+                    )}
+                  >
                     {day.displayDate.split(" ")[0]}
                   </span>
                 </div>
