@@ -448,41 +448,15 @@ export function TransactionForm({ categories, suggestions, onSuccess }: Transact
             <div className="grid gap-3 sm:grid-cols-2">
               {/* Tanggal */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor={dateInputId} className="text-xs font-semibold text-zinc-300 flex items-center gap-1">
+                <div className="flex items-center justify-between min-h-[20px]">
+                  <label htmlFor={dateInputId} className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
                     <span>Tanggal</span>
                     {defaultDateInfo.isNightOwl && (
-                      <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-medium text-amber-400 border border-amber-500/20">
+                      <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400 border border-amber-500/20" title="Mode begadang: otomatis default ke kemarin">
                         <Moon className="size-2.5" /> Begadang
                       </span>
                     )}
                   </label>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setDate(getTodayString())}
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-medium transition",
-                        date === getTodayString()
-                          ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      )}
-                    >
-                      Hari Ini
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDate(getYesterdayString())}
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-medium transition",
-                        date === getYesterdayString()
-                          ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      )}
-                    >
-                      Kemarin
-                    </button>
-                  </div>
                 </div>
                 <div className="relative">
                   <input
@@ -494,13 +468,42 @@ export function TransactionForm({ categories, suggestions, onSuccess }: Transact
                   />
                   <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
                 </div>
+                {/* Quick Date Presets */}
+                <div className="flex items-center gap-1 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDate(getTodayString())}
+                    className={cn(
+                      "rounded-md px-2 py-0.5 text-[10px] font-medium transition border",
+                      date === getTodayString()
+                        ? "bg-sky-500/20 text-sky-400 border-sky-500/30 font-semibold"
+                        : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    )}
+                  >
+                    Hari Ini
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDate(getYesterdayString())}
+                    className={cn(
+                      "rounded-md px-2 py-0.5 text-[10px] font-medium transition border",
+                      date === getYesterdayString()
+                        ? "bg-sky-500/20 text-sky-400 border-sky-500/30 font-semibold"
+                        : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    )}
+                  >
+                    Kemarin
+                  </button>
+                </div>
               </div>
 
               {/* Kategori */}
               <div className="space-y-1.5">
-                <label htmlFor={categoryInputId} className="text-xs font-semibold text-zinc-300">
-                  Kategori
-                </label>
+                <div className="flex items-center justify-between min-h-[20px]">
+                  <label htmlFor={categoryInputId} className="text-xs font-semibold text-zinc-300">
+                    Kategori
+                  </label>
+                </div>
                 <div className="relative">
                   <select
                     id={categoryInputId}
