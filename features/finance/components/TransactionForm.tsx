@@ -143,10 +143,16 @@ export function TransactionForm({ categories, suggestions, onSuccess }: Transact
   const dateInputId = useId();
   const categoryInputId = useId();
 
-  // Filter categories by type
-  const availableCategories = (categories || []).filter(
-    (c) => c && (c.type === type || c.type === "both")
-  );
+  // Filter categories by type and deduplicate by name
+  const availableCategories = (categories || [])
+    .filter((c) => c && (c.type === type || c.type === "both"))
+    .filter(
+      (c, index, self) =>
+        index ===
+        self.findIndex(
+          (item) => item.name.trim().toLowerCase() === c.name.trim().toLowerCase()
+        )
+    );
 
   // Filter presets by current type
   const activePresets = (Array.isArray(presets) ? presets : DEFAULT_PRESETS).filter(

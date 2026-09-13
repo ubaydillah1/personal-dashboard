@@ -120,7 +120,18 @@ export const financeRepository = {
         }));
       }
 
-      return (data as CategoryRow[]).map(mapCategory);
+      // Deduplicate categories by lowercase name and type
+      const seen = new Set<string>();
+      const uniqueCategories: FinanceCategory[] = [];
+      for (const row of data as CategoryRow[]) {
+        const key = `${row.name.trim().toLowerCase()}__${row.type}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueCategories.push(mapCategory(row));
+        }
+      }
+
+      return uniqueCategories;
     } catch (e) {
       console.error("Failed to query categories:", e);
       return DEFAULT_CATEGORIES.map((cat, index) => ({
@@ -272,31 +283,77 @@ export const financeRepository = {
 
   async getFinancialSummary(startDate: string, endDate: string): Promise<FinanceSummary> {
     const supabase = getSupabaseServerClient();
-    const [transactionsResult, categoriesResult] = await Promise.all([
+
+    // Determine previous month dates (MoM)
+    const [startYear, startMonth] = startDate.split("-").map(Number);
+    const prevDateObj = new Date(startYear, startMonth - 2, 1);
+    const prevYear = prevDateObj.getFullYear();
+    const prevMonthStr = String(prevDateObj.getMonth() + 1).padStart(2, "0");
+    const prevStartDate = `${prevYear}-${prevMonthStr}-01`;
+    const prevLastDay = new Date(prevYear, prevDateObj.getMonth() + 1, 0).getDate();
+    const prevEndDate = `${prevYear}-${prevMonthStr}-${String(prevLastDay).padStart(2, "0")}`;
+
+    const [currTransactionsResult, prevTransactionsResult, categoriesResult] = await Promise.all([
       supabase
         .from("finance_transactions")
         .select("*")
         .gte("date", startDate)
         .lte("date", endDate)
         .order("date", { ascending: true }),
+      supabase
+        .from("finance_transactions")
+        .select("*")
+        .gte("date", prevStartDate)
+        .lte("date", prevEndDate),
       this.findCategories(),
     ]);
 
-    const transactions = transactionsResult.error
+    const transactions = currTransactionsResult.error
       ? []
-      : ((transactionsResult.data ?? []) as TransactionRow[]).map(mapTransaction);
+      : ((currTransactionsResult.data ?? []) as TransactionRow[]).map(mapTransaction);
+
+    const prevTransactions = prevTransactionsResult.error
+      ? []
+      : ((prevTransactionsResult.data ?? []) as TransactionRow[]).map(mapTransaction);
+
     const categoryMap = new Map<string, FinanceCategory>();
     for (const cat of categoriesResult) {
       categoryMap.set(cat.name.toLowerCase(), cat);
     }
 
+    // Process Previous Month
+    let prevTotalIncome = 0;
+    let prevTotalExpense = 0;
+    const prevCategoryTotals = new Map<string, number>();
+
+    for (const pt of prevTransactions) {
+      if (pt.type === "income") {
+        prevTotalIncome += pt.amount;
+      } else {
+        prevTotalExpense += pt.amount;
+        const catName = pt.categoryName || "Lainnya";
+        prevCategoryTotals.set(catName, (prevCategoryTotals.get(catName) || 0) + pt.amount);
+      }
+    }
+
+    const prevNetBalance = prevTotalIncome - prevTotalExpense;
+    const expenseDiffPercent =
+      prevTotalExpense > 0
+        ? Math.round(((transactions.filter((t) => t.type === "expense").reduce((acc, c) => acc + c.amount, 0) - prevTotalExpense) / prevTotalExpense) * 100)
+        : 0;
+    const incomeDiffPercent =
+      prevTotalIncome > 0
+        ? Math.round(((transactions.filter((t) => t.type === "income").reduce((acc, c) => acc + c.amount, 0) - prevTotalIncome) / prevTotalIncome) * 100)
+        : 0;
+
+    // Process Current Month
     let totalIncome = 0;
     let totalExpense = 0;
     const categoryTotals = new Map<
       string,
       { amount: number; count: number; color: string; icon: string }
     >();
-    const dailyMap = new Map<string, { income: number; expense: number }>();
+    const dailyMap = new Map<string, { income: number; expense: number; maxExpenseTitle?: string; maxExpenseAmount: number }>();
 
     for (const t of transactions) {
       if (t.type === "income") {
@@ -319,11 +376,15 @@ export const financeRepository = {
       }
 
       // Group by daily
-      const dayData = dailyMap.get(t.date) || { income: 0, expense: 0 };
+      const dayData = dailyMap.get(t.date) || { income: 0, expense: 0, maxExpenseAmount: 0 };
       if (t.type === "income") {
         dayData.income += t.amount;
       } else {
         dayData.expense += t.amount;
+        if (t.amount > dayData.maxExpenseAmount) {
+          dayData.maxExpenseAmount = t.amount;
+          dayData.maxExpenseTitle = t.title;
+        }
       }
       dailyMap.set(t.date, dayData);
     }
@@ -336,32 +397,180 @@ export const financeRepository = {
     const dayDiff = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
     const dailyAverageExpense = totalExpense > 0 ? Math.round(totalExpense / dayDiff) : 0;
 
-    // Category breakdown sorted by amount descending
-    const categoryBreakdown: CategorySummaryItem[] = Array.from(categoryTotals.entries())
-      .map(([name, data]) => ({
-        name,
-        amount: data.amount,
-        percentage: totalExpense > 0 ? Math.round((data.amount / totalExpense) * 100) : 0,
-        color: data.color,
-        icon: data.icon,
-        count: data.count,
-      }))
+    // Top 5 Jumbo Expenses
+    const topExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        amount: t.amount,
+        date: t.date,
+        categoryName: t.categoryName,
+      }));
+
+    // Category breakdown with MoM comparison
+    const categoryBreakdown = Array.from(categoryTotals.entries())
+      .map(([name, data]) => {
+        const previousAmount = prevCategoryTotals.get(name) || 0;
+        const diffAmount = data.amount - previousAmount;
+        const diffPercent =
+          previousAmount > 0
+            ? Math.round((diffAmount / previousAmount) * 100)
+            : 0;
+        return {
+          name,
+          amount: data.amount,
+          percentage: totalExpense > 0 ? Math.round((data.amount / totalExpense) * 100) : 0,
+          color: data.color,
+          icon: data.icon,
+          count: data.count,
+          previousAmount,
+          diffAmount,
+          diffPercent,
+          isNew: previousAmount === 0 && data.amount > 0,
+        };
+      })
       .sort((a, b) => b.amount - a.amount);
 
-    // Build timeline daily trend
+    // Build timeline daily trend & find peak expense day
+    let peakDay: { date: string; displayDate: string; dayLabel: string; amount: number; topTransactionTitle?: string } | null = null;
     const dailyTrend: DailyTrendItem[] = [];
     const curr = new Date(start);
+
     while (curr <= end) {
       const dateStr = curr.toISOString().split("T")[0];
-      const dayData = dailyMap.get(dateStr) || { income: 0, expense: 0 };
+      const dayData = dailyMap.get(dateStr) || { income: 0, expense: 0, maxExpenseAmount: 0 };
+      const displayDate = curr.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+      const dayLabel = curr.toLocaleDateString("id-ID", { weekday: "short" });
+
       dailyTrend.push({
         date: dateStr,
-        displayDate: curr.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-        dayLabel: curr.toLocaleDateString("id-ID", { weekday: "short" }),
+        displayDate,
+        dayLabel,
         income: dayData.income,
         expense: dayData.expense,
       });
+
+      if (dayData.expense > 0 && (!peakDay || dayData.expense > peakDay.amount)) {
+        peakDay = {
+          date: dateStr,
+          displayDate,
+          dayLabel,
+          amount: dayData.expense,
+          topTransactionTitle: dayData.maxExpenseTitle,
+        };
+      }
+
       curr.setDate(curr.getDate() + 1);
+    }
+
+    // Health calculation
+    const expenseRatio = totalIncome > 0 ? Math.round((totalExpense / totalIncome) * 100) : (totalExpense > 0 ? 100 : 0);
+    let healthStatus: "healthy" | "moderate" | "warning" | "deficit" | "no_income" = "healthy";
+
+    if (totalIncome === 0 && totalExpense > 0) {
+      healthStatus = "no_income";
+    } else if (totalIncome > 0) {
+      if (expenseRatio <= 65) {
+        healthStatus = "healthy";
+      } else if (expenseRatio <= 85) {
+        healthStatus = "moderate";
+      } else if (expenseRatio <= 100) {
+        healthStatus = "warning";
+      } else {
+        healthStatus = "deficit";
+      }
+    }
+
+    // Projection calculation (if current month or within active period)
+    const today = new Date();
+    const isCurrentMonth =
+      today.getFullYear() === startYear && today.getMonth() + 1 === startMonth;
+
+    let projection = null;
+    if (isCurrentMonth) {
+      const daysElapsed = Math.min(dayDiff, Math.max(1, today.getDate()));
+      const projectedExpense = Math.round((totalExpense / daysElapsed) * dayDiff);
+      const projectedNet = totalIncome - projectedExpense;
+      projection = {
+        projectedExpense,
+        daysElapsed,
+        totalDays: dayDiff,
+        isProjectedDeficit: totalIncome > 0 && projectedExpense > totalIncome,
+        projectedNet,
+      };
+    }
+
+    // Smart Auto-Insights Generation
+    const insights: string[] = [];
+
+    // 1. Health / Cashflow Status
+    if (healthStatus === "deficit") {
+      insights.push(
+        `🚨 Terjadi over-spending: Pengeluaran melampaui pemasukan sebesar ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Math.abs(netBalance))} (Rasio belanja ${expenseRatio}%).`
+      );
+    } else if (healthStatus === "warning") {
+      insights.push(
+        `⚠️ Arus kas dalam mode waspada: Pengeluaran menyerap ${expenseRatio}% dari total pemasukan bulan ini.`
+      );
+    } else if (healthStatus === "healthy" && totalIncome > 0) {
+      insights.push(
+        `✅ Kondisi finansial sangat sehat: Rasio belanja ${expenseRatio}%, berhasil mengamankan surplus ${100 - expenseRatio}%.`
+      );
+    } else if (healthStatus === "no_income") {
+      insights.push(
+        `ℹ️ Tercatat pengeluaran ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(totalExpense)} tanpa ada pemasukan yang dicatat pada periode ini.`
+      );
+    }
+
+    // 2. MoM Comparison
+    if (prevTotalExpense > 0) {
+      if (expenseDiffPercent > 15) {
+        insights.push(
+          `📈 Pengeluaran membengkak +${expenseDiffPercent}% lebih tinggi dibandingkan bulan sebelumnya.`
+        );
+      } else if (expenseDiffPercent < -10) {
+        insights.push(
+          `👏 Pola hemat berhasil: Pengeluaran turun ${Math.abs(expenseDiffPercent)}% lebih hemat dari bulan lalu.`
+        );
+      } else {
+        insights.push(
+          `📊 Pengeluaran stabil dengan selisih ${expenseDiffPercent >= 0 ? `+${expenseDiffPercent}` : expenseDiffPercent}% vs bulan lalu.`
+        );
+      }
+    }
+
+    // 3. Dominant Category & Spikes
+    if (categoryBreakdown.length > 0) {
+      const topCat = categoryBreakdown[0];
+      insights.push(
+        `🏷️ Pos '${topCat.name}' menjadi beban pengeluaran terbesar (${topCat.percentage}% dari total belanja).`
+      );
+
+      const spikedCat = categoryBreakdown.find((c) => !c.isNew && c.diffPercent >= 50 && c.amount >= 100000);
+      if (spikedCat) {
+        insights.push(
+          `⚡ Lonjakan terdeteksi: Biaya '${spikedCat.name}' naik tajam +${spikedCat.diffPercent}% dibanding bulan lalu.`
+        );
+      }
+    }
+
+    // 4. Peak Day
+    if (peakDay && peakDay.amount > dailyAverageExpense * 1.5 && peakDay.amount >= 100000) {
+      insights.push(
+        `🔥 Hari terboros terjadi pada ${peakDay.displayDate} (${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(peakDay.amount)})${
+          peakDay.topTransactionTitle ? ` dipicu '${peakDay.topTransactionTitle}'` : ""
+        }.`
+      );
+    }
+
+    // 5. Projection Warning
+    if (projection && projection.isProjectedDeficit) {
+      insights.push(
+        `⚠️ Proyeksi akhir bulan: Jika laju belanja bertahan (${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(dailyAverageExpense)}/hari), pengeluaran diprediksi tembus ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(projection.projectedExpense)} (Defisit).`
+      );
     }
 
     return {
@@ -374,6 +583,19 @@ export const financeRepository = {
       categoryBreakdown,
       dailyTrend,
       transactionCount: transactions.length,
+      healthStatus,
+      expenseRatio,
+      previousMonth: {
+        totalIncome: prevTotalIncome,
+        totalExpense: prevTotalExpense,
+        netBalance: prevNetBalance,
+        expenseDiffPercent,
+        incomeDiffPercent,
+      },
+      topExpenses,
+      peakExpenseDay: peakDay,
+      projection,
+      insights,
     };
   },
 };

@@ -64,6 +64,17 @@ export function TransactionList({ transactions, categories }: TransactionListPro
   const categoryFilterId = useId();
   const deleteMutation = useDeleteTransaction();
 
+  // Deduplicate categories by normalized name
+  const uniqueFilterCategories = useMemo(() => {
+    return (categories || []).filter(
+      (cat, index, self) =>
+        index ===
+        self.findIndex(
+          (c) => c.name.trim().toLowerCase() === cat.name.trim().toLowerCase()
+        )
+    );
+  }, [categories]);
+
   // Filter transactions
   const filtered = useMemo(() => {
     return (transactions || []).filter((t) => {
@@ -188,7 +199,7 @@ export function TransactionList({ transactions, categories }: TransactionListPro
               className="h-8 rounded-lg border border-zinc-800 bg-zinc-950/80 px-2.5 text-xs text-zinc-300 focus:border-sky-500/80 focus:outline-none"
             >
               <option value="all">Semua Kategori</option>
-              {categories.map((cat) => (
+              {uniqueFilterCategories.map((cat) => (
                 <option key={cat.id} value={cat.name}>
                   {cat.name}
                 </option>

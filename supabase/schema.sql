@@ -266,6 +266,8 @@ create table if not exists public.finance_categories (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists finance_categories_name_type_uidx on public.finance_categories (lower(trim(name)), type);
+
 create table if not exists public.finance_transactions (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(title) between 1 and 200),

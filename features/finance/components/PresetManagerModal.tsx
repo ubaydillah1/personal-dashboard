@@ -70,11 +70,25 @@ export function PresetManagerModal({
     (p) => p && p.type === selectedTab
   );
 
-  const availableCategories = (categories || []).filter(
-    (c) => c && (c.type === selectedTab || c.type === "both")
-  );
+  const availableCategories = (categories || [])
+    .filter((c) => c && (c.type === selectedTab || c.type === "both"))
+    .filter(
+      (c, index, self) =>
+        index ===
+        self.findIndex(
+          (item) => item.name.trim().toLowerCase() === c.name.trim().toLowerCase()
+        )
+    );
 
-  const fallbackCategories = availableCategories.length > 0 ? availableCategories : categories;
+  const fallbackCategories = (
+    availableCategories.length > 0 ? availableCategories : categories || []
+  ).filter(
+    (c, index, self) =>
+      index ===
+      self.findIndex(
+        (item) => item.name.trim().toLowerCase() === c.name.trim().toLowerCase()
+      )
+  );
 
   function triggerAutoSave(updatedList: QuickPreset[]) {
     onSavePresets(updatedList);
