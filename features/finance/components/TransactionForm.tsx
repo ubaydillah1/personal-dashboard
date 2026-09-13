@@ -48,13 +48,22 @@ function parseStoredPresets(raw: string | null): QuickPreset[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_PRESETS;
-    return parsed.map((item, idx) => ({
+    const validPresets: QuickPreset[] = parsed.map((item, idx) => ({
       id: typeof item?.id === "string" ? item.id : `preset-${idx}`,
       title: typeof item?.title === "string" ? item.title : (typeof item?.title?.title === "string" ? item.title.title : "Pintasan"),
       amount: typeof item?.amount === "number" ? item.amount : Number(item?.amount) || 10000,
       categoryName: typeof item?.categoryName === "string" ? item.categoryName : "Makanan & Minuman",
-      type: item?.type === "income" ? "income" : "expense",
+      type: (item?.type === "income" ? "income" : "expense") as "expense" | "income",
     }));
+
+    // If existing localStorage only contains expense presets, merge with default income presets
+    const hasIncome = validPresets.some((p) => p.type === "income");
+    const defaultIncomes = DEFAULT_PRESETS.filter((p) => p.type === "income");
+    if (!hasIncome && defaultIncomes.length > 0) {
+      return [...validPresets, ...defaultIncomes];
+    }
+
+    return validPresets;
   } catch {
     return DEFAULT_PRESETS;
   }
@@ -570,6 +579,7 @@ export function TransactionForm({ categories, suggestions, onSuccess }: Transact
         presets={presets}
         onSavePresets={handleSavePresets}
         categories={categories}
+        activeType={type}
       />
     </>
   );
