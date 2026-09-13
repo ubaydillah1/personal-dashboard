@@ -90,3 +90,12 @@ export async function getFinanceSummaryAction(startDate: string, endDate: string
   await requireAuth();
   return financeService.getSummary(startDate, endDate);
 }
+
+export async function getExportDataAction(startDate: string, endDate: string) {
+  await requireAuth();
+  const [transactions, summary] = await Promise.all([
+    financeService.getTransactions({ startDate, endDate }),
+    financeService.getSummary(startDate, endDate),
+  ]);
+  return { transactions, summary };
+}

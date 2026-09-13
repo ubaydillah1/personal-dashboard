@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { CategoryIcon } from "./CategoryIcon";
+import { FinanceExportDropdown } from "./FinanceExportDropdown";
 import type { FinanceSummary } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +47,7 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
 
   return (
     <div className="space-y-6">
-      {/* Month Picker / Range Header */}
+      {/* Month Picker & Export Actions Header */}
       <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 shadow-xl backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
@@ -58,21 +59,27 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
           </p>
         </div>
 
-        {/* Month Selector */}
-        <div className="flex items-center gap-2">
-          <label htmlFor={monthInputId} className="text-xs font-medium text-zinc-400">
-            Pilih Periode:
-          </label>
-          <div className="relative">
-            <input
-              id={monthInputId}
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => onMonthChange(e.target.value)}
-              className="h-9 rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 text-xs font-semibold text-zinc-200 focus:border-sky-500/80 focus:outline-none [color-scheme:dark]"
-            />
-            <Calendar className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-zinc-500" />
+        {/* Right Controls: Month Selector + Export Excel */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Month Selector */}
+          <div className="flex items-center gap-2">
+            <label htmlFor={monthInputId} className="text-xs font-medium text-zinc-400">
+              Periode:
+            </label>
+            <div className="relative">
+              <input
+                id={monthInputId}
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => onMonthChange(e.target.value)}
+                className="h-9 rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 text-xs font-semibold text-zinc-200 focus:border-sky-500/80 focus:outline-none [color-scheme:dark]"
+              />
+              <Calendar className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-zinc-500" />
+            </div>
           </div>
+
+          {/* Export Excel Dropdown Button */}
+          <FinanceExportDropdown selectedMonth={selectedMonth} />
         </div>
       </div>
 
