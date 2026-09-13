@@ -28,6 +28,16 @@ function parseContent(value: string) {
   return JSON.parse(value);
 }
 
+export async function getAdminBlogsAction() {
+  await requireAuth();
+  return blogsService.getAdminBlogs();
+}
+
+export async function getBlogImagesAction() {
+  await requireAuth();
+  return blogsService.getBlogImages();
+}
+
 export async function saveBlogAction(
   _state: { error?: string; success?: boolean },
   formData: FormData,
@@ -82,14 +92,15 @@ export async function saveBlogAction(
   return { success: true };
 }
 
-export async function deleteBlogAction(formData: FormData) {
+export async function deleteBlogAction(idOrFormData: string | FormData) {
   await requireAuth();
-  const parsed = blogIdSchema.safeParse({ id: getString(formData, "id") });
+  const rawId = typeof idOrFormData === "string" ? idOrFormData : getString(idOrFormData, "id");
+  const parsed = blogIdSchema.safeParse({ id: rawId });
 
-  if (!parsed.success) return;
+  if (!parsed.success) return { success: false, error: "Invalid ID." };
   await blogsService.deleteBlog(parsed.data.id);
   revalidatePath("/blog-admin");
-  redirect("/blog-admin");
+  return { success: true };
 }
 
 export async function uploadBlogImageAction(
