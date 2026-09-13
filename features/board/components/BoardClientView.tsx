@@ -11,7 +11,7 @@ import {
   isDateKey,
   toAppDateKey,
 } from "@/lib/utils";
-import BoardLoading from "@/app/(dashboard)/board/loading";
+import { BoardLoading } from "./BoardLoading";
 
 const DEFAULT_RANGE_DAYS = 4;
 

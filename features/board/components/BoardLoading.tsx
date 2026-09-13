@@ -1,4 +1,4 @@
-export default function BoardLoading() {
+export function BoardLoading() {
   return (
     <div className="grid gap-5 animate-pulse">
       {/* Title */}
