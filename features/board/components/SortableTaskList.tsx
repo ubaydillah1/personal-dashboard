@@ -3,7 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { GripVertical } from "lucide-react";
 import type { Task } from "../types";
-import { copyTaskToDateAction, reorderTasksAction } from "../actions";
+import { useCopyTaskToDate, useReorderTasks } from "../hooks";
 import { TaskItem } from "./TaskItem";
 
 const dragTaskType = "application/x-tracker-task";
@@ -61,6 +61,9 @@ function readDraggedTask(event: React.DragEvent) {
 
 export function SortableTaskList({ date, tasks }: { date: string; tasks: Task[] }) {
   const [isPending, startTransition] = useTransition();
+  const copyTaskMutation = useCopyTaskToDate();
+  const reorderMutation = useReorderTasks();
+
   const [optimisticTasks, setOptimisticTasks] = useOptimistic(
     tasks,
     (currentTasks, payload: OptimisticPayload) => {
@@ -89,7 +92,7 @@ export function SortableTaskList({ date, tasks }: { date: string; tasks: Task[] 
     if (draggedTask.date !== date) {
       startTransition(async () => {
         setOptimisticTasks({ type: "copy", task: draggedTask, date });
-        await copyTaskToDateAction(draggedTask.id, date);
+        copyTaskMutation.mutate({ taskId: draggedTask.id, date });
       });
       return;
     }
@@ -99,7 +102,7 @@ export function SortableTaskList({ date, tasks }: { date: string; tasks: Task[] 
     const nextTasks = moveTask(optimisticTasks, draggedTask.id, targetId);
     startTransition(async () => {
       setOptimisticTasks({ type: "move", draggedId: draggedTask.id, targetId });
-      await reorderTasksAction(nextTasks.map((task) => task.id));
+      reorderMutation.mutate(nextTasks.map((task) => task.id));
     });
   }
 
@@ -111,7 +114,7 @@ export function SortableTaskList({ date, tasks }: { date: string; tasks: Task[] 
 
     startTransition(async () => {
       setOptimisticTasks({ type: "copy", task: draggedTask, date });
-      await copyTaskToDateAction(draggedTask.id, date);
+      copyTaskMutation.mutate({ taskId: draggedTask.id, date });
     });
   }
 

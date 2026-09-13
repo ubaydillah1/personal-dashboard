@@ -1,14 +1,28 @@
+"use client";
+
+import { useRef } from "react";
 import { Plus } from "lucide-react";
 import { TagInput } from "@/components/shared/TagInput";
 import { PendingButton } from "@/components/shared/PendingButton";
-import { createTaskAction } from "../actions";
+import { useCreateTask } from "../hooks";
 
 const inputClassName =
   "h-8 min-w-0 rounded-md border border-zinc-800 bg-zinc-950 px-2 text-xs outline-none focus:border-emerald-400";
 
 export function AddTaskInline({ date, tags }: { date: string; tags: string[] }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const createMutation = useCreateTask();
+
+  function handleSubmit(formData: FormData) {
+    createMutation.mutate(formData, {
+      onSuccess: () => {
+        formRef.current?.reset();
+      },
+    });
+  }
+
   return (
-    <form action={createTaskAction} className="flex flex-col gap-2">
+    <form ref={formRef} action={handleSubmit} className="flex flex-col gap-2">
       <input type="hidden" name="date" value={date} />
       <input
         name="title"

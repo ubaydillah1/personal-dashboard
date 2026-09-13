@@ -1,7 +1,9 @@
+"use client";
+
 import { CopyPlus } from "lucide-react";
 import { PendingButton } from "@/components/shared/PendingButton";
 import type { Combo } from "@/features/combos/types";
-import { addComboToDateAction } from "../actions";
+import { useAddComboToDate } from "../hooks";
 
 export function AddComboInline({
   date,
@@ -10,10 +12,16 @@ export function AddComboInline({
   date: string;
   combos: Combo[];
 }) {
+  const addComboMutation = useAddComboToDate();
+
   if (combos.length === 0) return null;
 
+  function handleSubmit(formData: FormData) {
+    addComboMutation.mutate(formData);
+  }
+
   return (
-    <form action={addComboToDateAction} className="grid grid-cols-[1fr_auto] gap-2">
+    <form action={handleSubmit} className="grid grid-cols-[1fr_auto] gap-2">
       <input type="hidden" name="date" value={date} />
       <select
         name="id"

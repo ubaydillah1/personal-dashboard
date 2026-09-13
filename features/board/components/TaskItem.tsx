@@ -1,13 +1,26 @@
+"use client";
+
 import { Check, Trash2 } from "lucide-react";
 import { PendingButton } from "@/components/shared/PendingButton";
 import type { Task } from "../types";
-import { deleteTaskAction, toggleTaskAction } from "../actions";
+import { useDeleteTask, useToggleTask } from "../hooks";
 
 export function TaskItem({ task }: { task: Task }) {
+  const toggleMutation = useToggleTask();
+  const deleteMutation = useDeleteTask();
+
+  function handleToggle(formData: FormData) {
+    toggleMutation.mutate(formData);
+  }
+
+  function handleDelete(formData: FormData) {
+    deleteMutation.mutate(formData);
+  }
+
   return (
     <div className="rounded-md border border-zinc-800 bg-zinc-950 p-3">
       <div className="flex items-start gap-2">
-        <form action={toggleTaskAction}>
+        <form action={handleToggle}>
           <input type="hidden" name="id" value={task.id} />
           <input type="hidden" name="isDone" value={String(!task.isDone)} />
           <PendingButton
@@ -28,7 +41,7 @@ export function TaskItem({ task }: { task: Task }) {
             {task.note ? <span>{task.note}</span> : null}
           </div>
         </div>
-        <form action={deleteTaskAction}>
+        <form action={handleDelete}>
           <input type="hidden" name="id" value={task.id} />
           <PendingButton type="submit" size="icon-sm" variant="ghost" title="Delete task">
             <Trash2 className="size-4" />

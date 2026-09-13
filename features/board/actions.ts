@@ -119,3 +119,18 @@ export async function reorderTasksAction(taskIds: string[]) {
   );
   revalidatePath("/board");
 }
+
+export async function getRangeBoardAction(from: string, to: string) {
+  await requireAuth();
+  return boardService.getRangeBoard(from, to);
+}
+
+export async function getActiveCombosAction() {
+  await requireAuth();
+  return boardService.getActiveCombos();
+}
+
+export async function getKnownTagsAction() {
+  await requireAuth();
+  return boardService.getKnownTags();
+}
