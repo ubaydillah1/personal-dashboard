@@ -445,9 +445,30 @@ export function BlogManager({
           ) : null}
         </form>
         {selectedBlog ? (
-          <form action={deleteBlogAction} className="fixed right-6 top-16 z-40">
+          <form
+            action={async (formData) => {
+              const res = await deleteBlogAction(formData);
+              if (res.success) {
+                setToast({ type: "success", message: "Blog deleted successfully!" });
+                selectBlog(null);
+              } else {
+                setToast({ type: "error", message: res.error ?? "Failed to delete blog." });
+              }
+            }}
+            className="fixed right-6 top-16 z-40"
+          >
             <input type="hidden" name="id" value={selectedBlog.id} />
-            <Button type="submit" variant="destructive" size="icon" title="Delete blog">
+            <Button
+              type="submit"
+              variant="destructive"
+              size="icon"
+              title="Delete blog"
+              onClick={(e) => {
+                if (!window.confirm("Are you sure you want to delete this blog?")) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <Trash2 className="size-4" />
             </Button>
           </form>

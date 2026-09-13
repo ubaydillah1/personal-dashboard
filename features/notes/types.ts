@@ -1,4 +1,4 @@
-export type NoteBlockType = "bullet" | "text" | "todo" | "link";
+export type NoteBlockType = "bullet" | "text" | "todo" | "link" | "image";
 
 export type NoteBlock = {
   id: string;

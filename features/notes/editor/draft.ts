@@ -16,7 +16,10 @@ export function getInitialDraftBlocks(note: Note): DraftBlock[] {
 
   return note.blocks.map((block, index) => ({
     id: block.id,
-    type: block.type === "link" || block.type === "text" ? block.type : "bullet",
+    type:
+      block.type === "link" || block.type === "text" || block.type === "todo" || block.type === "image"
+        ? block.type
+        : "bullet",
     content: block.content,
     position: index,
     metadata: block.metadata,
@@ -27,7 +30,10 @@ export function serializeDraft(title: string, blocks: DraftBlock[]) {
   return JSON.stringify({
     title: title.trim() || "Untitled note",
     blocks: blocks.map((block, index) => ({
-      type: block.type === "link" || block.type === "text" ? block.type : "bullet",
+      type:
+        block.type === "link" || block.type === "text" || block.type === "todo" || block.type === "image"
+          ? block.type
+          : "bullet",
       content: block.content,
       position: index,
       metadata: block.metadata,

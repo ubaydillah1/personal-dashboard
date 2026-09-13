@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const noteBlockTypeSchema = z.enum(["bullet", "text", "todo", "link"]);
+export const noteBlockTypeSchema = z.enum(["bullet", "text", "todo", "link", "image"]);
 
 export const saveNoteSchema = z.object({
   id: z.string().uuid(),
@@ -10,7 +10,7 @@ export const saveNoteSchema = z.object({
       z.object({
         id: z.string().uuid().optional(),
         type: noteBlockTypeSchema,
-        content: z.string().max(5000),
+        content: z.string().max(10000),
         position: z.number().int().min(0),
         metadata: z.record(z.string(), z.unknown()).default({}),
       }),

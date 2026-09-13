@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { TextSelection } from "@tiptap/pm/state";
 import { wrapInList } from "@tiptap/pm/schema-list";
 import type { EditorView } from "@tiptap/pm/view";
-import { fetchYoutubeTitleAction } from "../actions";
+import { fetchYoutubeTitleAction, uploadNoteImageAction } from "../actions";
 import { findFirstLinkPreview, getLinkPreview, isYoutubeUrl } from "../editor/link";
 import { LinkMention } from "../editor/linkMention";
+import { NoteImage } from "../editor/noteImage";
 import { draftBlocksToTiptapDoc, tiptapDocToDraftBlocks } from "../editor/tiptapDocument";
 import type { DraftBlock } from "../editor/types";
 import { SlashCommandMenu } from "./SlashCommandMenu";
@@ -115,10 +116,61 @@ export function BlocksEditable({
   const content = useMemo(() => draftBlocksToTiptapDoc(blocks), []);
   const [slashMenu, setSlashMenu] = useState<MenuPosition | null>(null);
   const [pendingMention, setPendingMention] = useState<PendingMention | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function hideMenus() {
     setSlashMenu(null);
     setPendingMention(null);
+  }
+
+  function handleInsertImageFile(file: File) {
+    if (!editor) return;
+    const view = editor.view;
+    const tempUrl = URL.createObjectURL(file);
+
+    const imageNode = view.state.schema.nodes.noteImage.create({
+      src: tempUrl,
+      width: "60%",
+      align: "center",
+      isLoading: true,
+    });
+
+    const transaction = view.state.tr.replaceSelectionWith(imageNode).scrollIntoView();
+    view.dispatch(transaction);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadNoteImageAction(formData).then((res) => {
+      if (res.success && res.url) {
+        view.state.doc.descendants((node, pos) => {
+          if (node.type.name === "noteImage" && node.attrs.src === tempUrl) {
+            view.dispatch(
+              view.state.tr.setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                src: res.url,
+                isLoading: false,
+              }),
+            );
+            return false;
+          }
+          return true;
+        });
+      } else {
+        view.state.doc.descendants((node, pos) => {
+          if (node.type.name === "noteImage" && node.attrs.src === tempUrl) {
+            view.dispatch(
+              view.state.tr.setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                isLoading: false,
+              }),
+            );
+            return false;
+          }
+          return true;
+        });
+      }
+    });
   }
 
   const editor = useEditor({
@@ -143,6 +195,7 @@ export function BlocksEditable({
         },
       }),
       LinkMention,
+      NoteImage,
     ],
     editorProps: {
       attributes: {
@@ -206,11 +259,45 @@ export function BlocksEditable({
             turnCurrentTextblockIntoList(view);
             return true;
           }
+          if ($from.parent.textContent === "/image") {
+            event.preventDefault();
+            fileInputRef.current?.click();
+            return true;
+          }
         }
 
         return false;
       },
       handlePaste(view, event) {
+        // 1. Check for image files in clipboard (Ctrl+V screenshot or copy image)
+        const clipboardFiles = event.clipboardData?.files;
+        const clipboardItems = event.clipboardData?.items;
+        let imageFile: File | null = null;
+
+        if (clipboardFiles && clipboardFiles.length > 0) {
+          const found = Array.from(clipboardFiles).find((f) => f.type.startsWith("image/"));
+          if (found) imageFile = found;
+        }
+
+        if (!imageFile && clipboardItems && clipboardItems.length > 0) {
+          for (const item of Array.from(clipboardItems)) {
+            if (item.type.startsWith("image/")) {
+              const file = item.getAsFile();
+              if (file) {
+                imageFile = file;
+                break;
+              }
+            }
+          }
+        }
+
+        if (imageFile) {
+          event.preventDefault();
+          handleInsertImageFile(imageFile);
+          return true;
+        }
+
+        // 2. Check for link preview
         const text = event.clipboardData?.getData("text/plain").trim();
         const preview = text ? getLinkPreview(text) : null;
         if (!preview) return false;
@@ -246,12 +333,12 @@ export function BlocksEditable({
     onSelectionUpdate({ editor }) {
       const view = editor.view;
       const range = getTextblockRange(view);
-      setSlashMenu(range.text === "/" ? getMenuPosition(view) : null);
+      setSlashMenu(range.text === "/" || range.text === "/image" || range.text === "/list" ? getMenuPosition(view) : null);
     },
     onUpdate({ editor }) {
       const view = editor.view;
       const range = getTextblockRange(view);
-      setSlashMenu(range.text === "/" ? getMenuPosition(view) : null);
+      setSlashMenu(range.text === "/" || range.text === "/image" || range.text === "/list" ? getMenuPosition(view) : null);
       setBlocks(tiptapDocToDraftBlocks(editor.getJSON() as JSONContent));
     },
   });
@@ -259,6 +346,11 @@ export function BlocksEditable({
   function selectSlashList() {
     if (!editor) return;
     turnCurrentTextblockIntoList(editor.view);
+    setSlashMenu(null);
+  }
+
+  function selectSlashImage() {
+    fileInputRef.current?.click();
     setSlashMenu(null);
   }
 
@@ -270,12 +362,32 @@ export function BlocksEditable({
 
   return (
     <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+      {/* Hidden File Input for Slash Command Image Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleInsertImageFile(file);
+            e.target.value = "";
+          }
+        }}
+      />
+
       <EditorContent editor={editor} className="notes-editor h-full min-h-0 min-w-0 overflow-hidden" />
+
       {slashMenu ? (
         <div className="absolute z-30" style={{ top: slashMenu.top, left: slashMenu.left }}>
-          <SlashCommandMenu onSelectList={selectSlashList} />
+          <SlashCommandMenu
+            onSelectList={selectSlashList}
+            onSelectImage={selectSlashImage}
+          />
         </div>
       ) : null}
+
       {pendingMention ? (
         <div
           className="absolute z-30 w-80 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl shadow-black/30"

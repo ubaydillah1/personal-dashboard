@@ -40,7 +40,10 @@ export function useNoteAutosave({
       const normalizedBlocks = blocks.map((block, index) => ({
         id: block.id,
         type:
-          block.type === "link" || block.type === "text"
+          block.type === "link" ||
+          block.type === "text" ||
+          block.type === "todo" ||
+          block.type === "image"
             ? block.type
             : ("bullet" as const),
         content: block.content,

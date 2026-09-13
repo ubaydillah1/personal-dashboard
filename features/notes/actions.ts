@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth/jwt";
+import { blogRepository } from "@/repositories/blog.repository";
 import { noteIdSchema, saveNoteSchema, type SaveNoteSchemaInput } from "@/validators/note.schema";
 import { notesService } from "./service";
 
@@ -51,6 +52,25 @@ export async function saveNoteAction(input: SaveNoteSchemaInput) {
   revalidatePath("/notes");
   revalidatePath(`/notes/${parsed.data.id}`);
   return { success: true };
+}
+
+export async function uploadNoteImageAction(formData: FormData): Promise<{ success: boolean; url?: string; error?: string }> {
+  await requireAuth();
+
+  try {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { success: false, error: "No image file provided." };
+    }
+
+    const publicUrl = await blogRepository.uploadImage(file);
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to upload image.",
+    };
+  }
 }
 
 export async function fetchYoutubeTitleAction(url: string) {

@@ -19,6 +19,18 @@ function linkMentionNode(url: string, label: string): JSONContent {
   };
 }
 
+function noteImageNode(src: string, width = "65%", align = "center", alt = ""): JSONContent {
+  return {
+    type: "noteImage",
+    attrs: {
+      src,
+      width,
+      align,
+      alt,
+    },
+  };
+}
+
 function inlineContentFromBlock(block: DraftBlock): JSONContent[] {
   const url = typeof block.metadata.url === "string" ? block.metadata.url : null;
   const label =
@@ -42,9 +54,27 @@ function bullet(content: JSONContent[] = []): JSONContent {
 }
 
 export function draftBlocksToTiptapDoc(blocks: DraftBlock[]): JSONContent {
-  const content = (blocks.length > 0 ? blocks : [{ content: "", type: "bullet", metadata: {} } as DraftBlock]).map(
-    (block) => (block.type === "bullet" ? bullet(inlineContentFromBlock(block)) : paragraph(inlineContentFromBlock(block))),
-  );
+  const content: JSONContent[] = [];
+
+  for (const block of blocks.length > 0 ? blocks : [{ content: "", type: "bullet", metadata: {} } as DraftBlock]) {
+    if (block.type === "image" || block.metadata?.kind === "image") {
+      content.push(
+        noteImageNode(
+          block.content,
+          String(block.metadata?.width ?? "65%"),
+          String(block.metadata?.align ?? "center"),
+          String(block.metadata?.alt ?? ""),
+        ),
+      );
+      continue;
+    }
+
+    if (block.type === "bullet") {
+      content.push(bullet(inlineContentFromBlock(block)));
+    } else {
+      content.push(paragraph(inlineContentFromBlock(block)));
+    }
+  }
 
   return { type: "doc", content };
 }
@@ -98,6 +128,22 @@ export function tiptapDocToDraftBlocks(doc: JSONContent): DraftBlock[] {
   const blocks: DraftBlock[] = [];
 
   for (const node of doc.content ?? []) {
+    if (node.type === "noteImage") {
+      blocks.push({
+        id: crypto.randomUUID(),
+        type: "image",
+        content: String(node.attrs?.src ?? ""),
+        position: blocks.length,
+        metadata: {
+          kind: "image",
+          width: String(node.attrs?.width ?? "65%"),
+          align: String(node.attrs?.align ?? "center"),
+          alt: String(node.attrs?.alt ?? ""),
+        },
+      });
+      continue;
+    }
+
     if (node.type === "paragraph") {
       blocks.push(blockFromParagraph(node, blocks.length));
       continue;

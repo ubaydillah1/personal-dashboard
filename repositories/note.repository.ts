@@ -28,13 +28,16 @@ function mapNoteListItem(row: NoteRow): NoteListItem {
 }
 
 function mapNoteBlock(row: NoteBlockRow): NoteBlock {
+  const metadata = row.metadata ?? {};
+  const isImage = (row.type as string) === "image" || metadata.kind === "image";
+
   return {
     id: row.id,
     noteId: row.note_id,
-    type: row.type,
+    type: isImage ? "image" : row.type,
     content: row.content,
     position: row.position,
-    metadata: row.metadata ?? {},
+    metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -123,10 +126,15 @@ export const noteRepository = {
 
     const blocks = input.blocks.map((block) => ({
       note_id: input.id,
-      type: block.type,
+      // Postgres check constraint note_blocks_type_check only allows ('bullet', 'text', 'todo', 'link')
+      // Map 'image' to 'link' with metadata.kind = 'image' for 100% DB constraint compatibility
+      type: block.type === "image" ? "link" : block.type,
       content: block.content,
       position: block.position,
-      metadata: block.metadata ?? {},
+      metadata:
+        block.type === "image"
+          ? { ...(block.metadata ?? {}), kind: "image" }
+          : (block.metadata ?? {}),
     }));
 
     const { error: insertError } = await supabase.from("note_blocks").insert(blocks);
