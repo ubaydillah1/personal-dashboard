@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { saveNoteAction } from "../actions";
+import { NOTES_QUERY_KEYS } from "../hooks";
 import { createDraftBlock, serializeDraft } from "./draft";
 import type { DraftBlock, SaveStatus } from "./types";
 
@@ -14,6 +16,7 @@ export function useNoteAutosave({
   title: string;
   blocks: DraftBlock[];
 }) {
+  const queryClient = useQueryClient();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const lastSavedDraftRef = useRef(serializeDraft(title, blocks));
 
@@ -54,13 +57,14 @@ export function useNoteAutosave({
       if (result.success) {
         lastSavedDraftRef.current = serializeDraft(title, blocks);
         setSaveStatus("saved");
+        queryClient.invalidateQueries({ queryKey: NOTES_QUERY_KEYS.list });
       } else {
         setSaveStatus("unsaved");
       }
     }, 800);
 
     return () => window.clearTimeout(timeoutId);
-  }, [blocks, noteId, title]);
+  }, [blocks, noteId, title, queryClient]);
 
   return saveStatus;
 }

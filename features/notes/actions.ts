@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth/jwt";
 import { noteIdSchema, saveNoteSchema, type SaveNoteSchemaInput } from "@/validators/note.schema";
 import { notesService } from "./service";
@@ -22,11 +21,23 @@ function getTitleFromHtml(html: string) {
   return title ? decodeHtmlEntities(title).replace(/\s+-\s+YouTube\s*$/i, "") : null;
 }
 
+export async function getNotesListAction() {
+  await requireAuth();
+  return notesService.getNoteList();
+}
+
+export async function getNoteAction(id: string) {
+  await requireAuth();
+  const parsed = noteIdSchema.safeParse({ id });
+  if (!parsed.success) return null;
+  return notesService.getNote(parsed.data.id);
+}
+
 export async function createNoteAction() {
   await requireAuth();
   const note = await notesService.createNote();
   revalidatePath("/notes");
-  redirect(`/notes/${note.id}`);
+  return { success: true, note };
 }
 
 export async function saveNoteAction(input: SaveNoteSchemaInput) {
@@ -69,24 +80,13 @@ export async function fetchYoutubeTitleAction(url: string) {
   }
 }
 
-export async function openNoteAction(formData: FormData) {
+export async function deleteNoteAction(idOrFormData: string | FormData) {
   await requireAuth();
-  const parsed = noteIdSchema.safeParse({
-    id: formData.get("id"),
-  });
+  const rawId = typeof idOrFormData === "string" ? idOrFormData : idOrFormData.get("id");
+  const parsed = noteIdSchema.safeParse({ id: rawId });
 
-  if (!parsed.success) redirect("/notes");
-  redirect(`/notes/${parsed.data.id}`);
-}
-
-export async function deleteNoteAction(formData: FormData) {
-  await requireAuth();
-  const parsed = noteIdSchema.safeParse({
-    id: formData.get("id"),
-  });
-
-  if (!parsed.success) return;
+  if (!parsed.success) return { success: false, error: "Invalid ID." };
   await notesService.deleteNote(parsed.data.id);
   revalidatePath("/notes");
-  redirect("/notes");
+  return { success: true };
 }

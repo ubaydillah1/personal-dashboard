@@ -1,9 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
-import { PendingButton } from "@/components/shared/PendingButton";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { NoteListItem } from "../types";
-import { createNoteAction } from "../actions";
+import { useCreateNote } from "../hooks";
 import { DeleteNoteButton } from "./DeleteNoteButton";
 
 export function NotesList({
@@ -13,14 +15,19 @@ export function NotesList({
   notes: NoteListItem[];
   activeNoteId?: string;
 }) {
+  const createMutation = useCreateNote();
+
   return (
     <aside className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-      <form action={createNoteAction}>
-        <PendingButton type="submit" className="mb-3 h-9 w-full gap-2" pendingLabel="Creating...">
-          <Plus className="size-4" />
-          New note
-        </PendingButton>
-      </form>
+      <Button
+        type="button"
+        onClick={() => createMutation.mutate()}
+        disabled={createMutation.isPending}
+        className="mb-3 h-9 w-full gap-2"
+      >
+        <Plus className="size-4" />
+        {createMutation.isPending ? "Creating..." : "New note"}
+      </Button>
 
       <div className="grid gap-1">
         {notes.map((note) => (
@@ -38,7 +45,11 @@ export function NotesList({
               <FileText className="size-4 shrink-0" />
               <span className="truncate">{note.title}</span>
             </Link>
-            <DeleteNoteButton noteId={note.id} noteTitle={note.title} />
+            <DeleteNoteButton
+              noteId={note.id}
+              noteTitle={note.title}
+              isActive={activeNoteId === note.id}
+            />
           </div>
         ))}
       </div>

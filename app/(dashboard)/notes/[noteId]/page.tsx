@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { NotesWorkspace } from "@/features/notes/components/NotesWorkspace";
-import { notesService } from "@/features/notes/service";
+import { NotesWorkspaceClient } from "@/features/notes/components/NotesWorkspaceClient";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ noteId: string }>;
-}): Promise<Metadata> {
-  const { noteId } = await params;
-  const note = await notesService.getNote(noteId);
-
-  return {
-    title: note ? `${note.title} | Notes` : "Notes",
-    description: "Edit and organize a note in your tracker workspace.",
-  };
-}
+export const metadata: Metadata = {
+  title: "Notes",
+  description: "Edit and organize a note in your tracker workspace.",
+};
 
 export default async function NotePage({
   params,
@@ -23,11 +12,5 @@ export default async function NotePage({
   params: Promise<{ noteId: string }>;
 }) {
   const { noteId } = await params;
-  const [notes, note] = await Promise.all([
-    notesService.getNoteList(),
-    notesService.getNote(noteId),
-  ]);
-
-  if (!note) notFound();
-  return <NotesWorkspace notes={notes} note={note} />;
+  return <NotesWorkspaceClient noteId={noteId} />;
 }

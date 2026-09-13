@@ -1,34 +1,40 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { PendingButton } from "@/components/shared/PendingButton";
-import { deleteNoteAction } from "../actions";
+import { Button } from "@/components/ui/button";
+import { useDeleteNote } from "../hooks";
 
 export function DeleteNoteButton({
   noteId,
   noteTitle,
+  isActive,
 }: {
   noteId: string;
   noteTitle: string;
+  isActive?: boolean;
 }) {
+  const deleteMutation = useDeleteNote();
+
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    const isConfirmed = window.confirm(`Delete "${noteTitle}"?`);
+    if (isConfirmed) {
+      deleteMutation.mutate({ noteId, isActive });
+    }
+  }
+
   return (
-    <form
-      action={deleteNoteAction}
-      onSubmit={(event) => {
-        const isConfirmed = window.confirm(`Delete "${noteTitle}"?`);
-        if (!isConfirmed) event.preventDefault();
-      }}
+    <Button
+      type="button"
+      size="icon-sm"
+      variant="ghost"
+      onClick={handleDelete}
+      disabled={deleteMutation.isPending && deleteMutation.variables?.noteId === noteId}
+      className="opacity-0 transition group-hover/note:opacity-100 hover:text-red-400"
+      title="Delete note"
     >
-      <input type="hidden" name="id" value={noteId} />
-      <PendingButton
-        type="submit"
-        size="icon-sm"
-        variant="ghost"
-        className="opacity-0 transition group-hover/note:opacity-100"
-        title="Delete note"
-      >
-        <Trash2 className="size-4" />
-      </PendingButton>
-    </form>
+      <Trash2 className="size-4" />
+    </Button>
   );
 }
