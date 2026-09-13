@@ -323,15 +323,17 @@ export async function generateAndDownloadFinanceExcel({
       fgColor: { argb: isIncome ? "FFECFDF5" : "FFFEF2F2" }, // Emerald-50 / Rose-50
     };
 
-    // Row borders
+    // Row borders & default font
     for (let c = 1; c <= 8; c++) {
       const cell = row.getCell(c);
-      if (!cell.font.name) cell.font = { name: "Segoe UI", size: 10 };
+      if (!cell.font) {
+        cell.font = { name: "Segoe UI", size: 10 };
+      }
       cell.border = {
         top: { style: "thin", color: { argb: "FFF1F5F9" } },
         bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
         left: { style: "thin", color: { argb: "FFF1F5F9" } },
-        right: { style: "thin", color: { argb: "FFF1F5F9" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } },
       };
     }
 
