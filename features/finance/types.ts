@@ -66,6 +66,23 @@ export interface ExpenseProjection {
   projectedNet: number;
 }
 
+export interface CategorySummaryItem {
+  name: string;
+  amount: number;
+  percentage: number;
+  color: string;
+  icon: string;
+  count: number;
+}
+
+export interface DailyTrendItem {
+  date: string;
+  displayDate: string;
+  dayLabel: string;
+  income: number;
+  expense: number;
+}
+
 export interface CategoryMoMItem extends CategorySummaryItem {
   previousAmount: number;
   diffAmount: number;
