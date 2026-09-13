@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutList, NotebookText, Sparkles } from "lucide-react";
+import { LayoutList, NotebookText, Sparkles, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -18,15 +18,20 @@ export default function HomePage() {
           Welcome back, Ubay.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-          This is your personal life workspace: track daily tasks, build reusable combos, and keep focused notes in one place.
+          This is your personal life workspace: track daily tasks, manage your daily cashflow, and keep focused notes in one place.
         </p>
       </section>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
         <Link href="/board" className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 transition hover:border-zinc-700 hover:bg-zinc-900/80">
           <LayoutList className="mb-3 size-5 text-emerald-300" />
           <h2 className="font-semibold text-zinc-50">Todo Tracker</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-500">Open this week&apos;s board and keep the day moving.</p>
+        </Link>
+        <Link href="/finance" className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 transition hover:border-zinc-700 hover:bg-zinc-900/80">
+          <Wallet className="mb-3 size-5 text-sky-300" />
+          <h2 className="font-semibold text-zinc-50">Finance Tracker</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-500">Track daily income, expenses, and view monthly financial reports.</p>
         </Link>
         <Link href="/notes" className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 transition hover:border-zinc-700 hover:bg-zinc-900/80">
           <NotebookText className="mb-3 size-5 text-amber-300" />
@@ -37,3 +42,4 @@ export default function HomePage() {
     </div>
   );
 }
+

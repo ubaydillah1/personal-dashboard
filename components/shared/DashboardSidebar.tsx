@@ -16,6 +16,8 @@ import {
   NotebookText,
   PackagePlus,
   PenLine,
+  PieChart,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/features/auth/actions";
@@ -41,6 +43,13 @@ const workspaces = [
           { href: "/board", label: "Board", icon: LayoutList },
           { href: "/templates", label: "Combos", icon: PackagePlus },
           { href: "/report", label: "Report", icon: BarChart3 },
+        ],
+      },
+      {
+        label: "Finance",
+        items: [
+          { href: "/finance", label: "Transactions", icon: Wallet },
+          { href: "/finance/report", label: "Report", icon: PieChart },
         ],
       },
       {
