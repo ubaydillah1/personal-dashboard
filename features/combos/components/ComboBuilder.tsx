@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PendingButton } from "@/components/shared/PendingButton";
 import { TagInput } from "@/components/shared/TagInput";
-import { createComboAction } from "../actions";
+import { useCreateCombo } from "../hooks";
 
 const inputClassName =
   "h-10 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm outline-none focus:border-emerald-400";
@@ -19,6 +18,8 @@ type DraftTask = {
 
 export function ComboBuilder({ tags }: { tags: string[] }) {
   const [tasks, setTasks] = useState<DraftTask[]>([{ id: 1 }]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const createMutation = useCreateCombo();
 
   function addTaskRow() {
     setTasks((current) => [...current, { id: Date.now() }]);
@@ -28,8 +29,17 @@ export function ComboBuilder({ tags }: { tags: string[] }) {
     setTasks((current) => (current.length === 1 ? current : current.filter((task) => task.id !== id)));
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    await createMutation.mutateAsync(formData);
+    form.reset();
+    setTasks([{ id: Date.now() }]);
+  }
+
   return (
-    <form action={createComboAction} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <div className="grid gap-3 md:grid-cols-[1fr_auto]">
         <input name="name" placeholder="Combo name" className={inputClassName} required />
         <Button
@@ -72,10 +82,10 @@ export function ComboBuilder({ tags }: { tags: string[] }) {
       </div>
 
       <div className="mt-4 flex justify-end">
-        <PendingButton type="submit" className="h-10 gap-2" pendingLabel="Saving...">
+        <Button type="submit" disabled={createMutation.isPending} className="h-10 gap-2">
           <Plus className="size-4" />
-          Save combo
-        </PendingButton>
+          {createMutation.isPending ? "Saving..." : "Save combo"}
+        </Button>
       </div>
     </form>
   );

@@ -1,10 +1,14 @@
+"use client";
+
 import { Trash2 } from "lucide-react";
-import { PendingButton } from "@/components/shared/PendingButton";
+import { Button } from "@/components/ui/button";
 import type { Combo } from "../types";
-import { deleteComboAction } from "../actions";
+import { useDeleteCombo } from "../hooks";
 import { AddComboToDayForm } from "./AddComboToDayForm";
 
 export function ComboList({ combos }: { combos: Combo[] }) {
+  const deleteMutation = useDeleteCombo();
+
   if (combos.length === 0) {
     return <p className="rounded-lg border border-zinc-800 p-6 text-sm text-zinc-500">No combos yet.</p>;
   }
@@ -20,13 +24,17 @@ export function ComboList({ combos }: { combos: Combo[] }) {
             </div>
             <div className="flex flex-wrap gap-2">
               <AddComboToDayForm comboId={combo.id} />
-              <form action={deleteComboAction}>
-                <input type="hidden" name="id" value={combo.id} />
-                <PendingButton type="submit" size="sm" variant="destructive" className="gap-2" pendingLabel="Deleting...">
-                  <Trash2 className="size-4" />
-                  Delete
-                </PendingButton>
-              </form>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="gap-2"
+                disabled={deleteMutation.isPending && deleteMutation.variables === combo.id}
+                onClick={() => deleteMutation.mutate(combo.id)}
+              >
+                <Trash2 className="size-4" />
+                {deleteMutation.isPending && deleteMutation.variables === combo.id ? "Deleting..." : "Delete"}
+              </Button>
             </div>
           </div>
 

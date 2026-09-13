@@ -15,7 +15,7 @@ import {
   updateTaskAction,
 } from "./actions";
 import type { DayBoard } from "./types";
-import type { ComboGroupWithTemplates } from "@/features/combos/types";
+import type { Combo } from "@/features/combos/types";
 
 export const BOARD_QUERY_KEYS = {
   all: ["board"] as const,
@@ -32,7 +32,7 @@ export function useBoardDays(from: string, to: string, initialData?: DayBoard[])
   });
 }
 
-export function useBoardCombos(initialData?: ComboGroupWithTemplates[]) {
+export function useBoardCombos(initialData?: Combo[]) {
   return useQuery({
     queryKey: BOARD_QUERY_KEYS.combos,
     queryFn: () => getActiveCombosAction(),

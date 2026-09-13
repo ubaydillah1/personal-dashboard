@@ -25,6 +25,11 @@ function getComboTasks(formData: FormData) {
     .filter((task) => task.title.trim().length > 0);
 }
 
+export async function getCombosAction() {
+  await requireAuth();
+  return comboService.getCombos();
+}
+
 export async function createComboAction(formData: FormData) {
   await requireAuth();
   const parsed = createComboSchema.safeParse({
@@ -33,33 +38,41 @@ export async function createComboAction(formData: FormData) {
     tasks: getComboTasks(formData),
   });
 
-  if (!parsed.success) return;
-  await comboService.createCombo(parsed.data);
+  if (!parsed.success) return { success: false, error: "Validation failed" };
+  const combo = await comboService.createCombo(parsed.data);
   revalidatePath("/templates");
   revalidatePath("/board");
+  return { success: true, combo };
 }
 
-export async function deleteComboAction(formData: FormData) {
+export async function deleteComboAction(idOrFormData: string | FormData) {
   await requireAuth();
-  const parsed = comboIdSchema.safeParse({
-    id: getString(formData, "id"),
-  });
+  const id = typeof idOrFormData === "string" ? idOrFormData : getString(idOrFormData, "id");
+  const parsed = comboIdSchema.safeParse({ id });
 
-  if (!parsed.success) return;
+  if (!parsed.success) return { success: false, error: "Invalid id" };
   await comboService.deleteCombo(parsed.data.id);
   revalidatePath("/templates");
   revalidatePath("/board");
+  return { success: true };
 }
 
-export async function addComboToDateFromListAction(formData: FormData) {
+export async function addComboToDateFromListAction(idOrFormData: { id: string; date: string } | FormData) {
   await requireAuth();
-  const parsed = addComboToDateSchema.safeParse({
-    id: getString(formData, "id"),
-    date: getString(formData, "date"),
-  });
+  let id = "";
+  let date = "";
+  if (idOrFormData instanceof FormData) {
+    id = getString(idOrFormData, "id");
+    date = getString(idOrFormData, "date");
+  } else {
+    id = idOrFormData.id;
+    date = idOrFormData.date;
+  }
+  const parsed = addComboToDateSchema.safeParse({ id, date });
 
-  if (!parsed.success) return;
+  if (!parsed.success) return { success: false, error: "Invalid input" };
   await boardService.addComboToDate(parsed.data.id, parsed.data.date);
   revalidatePath("/board");
   revalidatePath("/report");
+  return { success: true };
 }

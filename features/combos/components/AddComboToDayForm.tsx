@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
-import { PendingButton } from "@/components/shared/PendingButton";
+import { Button } from "@/components/ui/button";
 import { addDays, formatDayLabel, startOfWeekMonday, toDateKey } from "@/lib/utils";
-import { addComboToDateFromListAction } from "../actions";
+import { useAddComboToDate } from "../hooks";
 
 function getCurrentWeekDates() {
   const start = startOfWeekMonday(new Date());
@@ -12,12 +13,19 @@ function getCurrentWeekDates() {
 
 export function AddComboToDayForm({ comboId }: { comboId: string }) {
   const dates = getCurrentWeekDates();
+  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const addMutation = useAddComboToDate();
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    await addMutation.mutateAsync({ id: comboId, date: selectedDate });
+  }
 
   return (
-    <form action={addComboToDateFromListAction} className="flex flex-wrap gap-2">
-      <input type="hidden" name="id" value={comboId} />
+    <form onSubmit={handleAdd} className="flex flex-wrap gap-2">
       <select
-        name="date"
+        value={selectedDate}
+        onChange={(e) => setSelectedDate(e.target.value)}
         className="h-8 rounded-md border border-zinc-800 bg-zinc-950 px-2 text-xs text-zinc-100 outline-none focus:border-emerald-400"
       >
         {dates.map((date) => (
@@ -26,16 +34,16 @@ export function AddComboToDayForm({ comboId }: { comboId: string }) {
           </option>
         ))}
       </select>
-      <PendingButton
+      <Button
         type="submit"
         size="sm"
         variant="outline"
+        disabled={addMutation.isPending}
         className="gap-2 border-zinc-700 bg-zinc-950 text-zinc-100 hover:bg-zinc-800"
-        pendingLabel="Adding..."
       >
         <CalendarPlus className="size-4" />
-        Add
-      </PendingButton>
+        {addMutation.isPending ? "Adding..." : "Add"}
+      </Button>
     </form>
   );
 }
