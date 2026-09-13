@@ -95,12 +95,12 @@ export function FinanceExportDropdown({ selectedMonth }: FinanceExportDropdownPr
   const isExporting = exportingType !== null;
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-50" ref={dropdownRef}>
       <button
         type="button"
         disabled={isExporting}
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/40 px-3 text-xs font-semibold text-emerald-400 shadow-sm transition hover:border-emerald-500/60 hover:bg-emerald-900/40 hover:text-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/60 px-3 text-xs font-semibold text-emerald-400 shadow-sm transition hover:border-emerald-500/60 hover:bg-emerald-900/50 hover:text-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
       >
         {isExporting ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -112,8 +112,8 @@ export function FinanceExportDropdown({ selectedMonth }: FinanceExportDropdownPr
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl border border-zinc-800 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-zinc-700 bg-zinc-950 p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 uppercase tracking-wider">
             Format Laporan Excel (.xlsx)
           </div>
 
@@ -121,9 +121,9 @@ export function FinanceExportDropdown({ selectedMonth }: FinanceExportDropdownPr
           <button
             type="button"
             onClick={() => handleExport("month")}
-            className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-zinc-800/80 text-zinc-200 hover:text-zinc-50 group"
+            className="flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-zinc-800/80 text-zinc-200 hover:text-zinc-50 cursor-pointer group"
           >
-            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20">
+            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/25 group-hover:border-emerald-500/50">
               <Calendar className="size-3.5" />
             </div>
             <div>
@@ -140,9 +140,9 @@ export function FinanceExportDropdown({ selectedMonth }: FinanceExportDropdownPr
           <button
             type="button"
             onClick={() => handleExport("year")}
-            className="mt-1 flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-zinc-800/80 text-zinc-200 hover:text-zinc-50 group"
+            className="mt-1 flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-zinc-800/80 text-zinc-200 hover:text-zinc-50 cursor-pointer group"
           >
-            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-sky-500/20 bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20">
+            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/25 group-hover:border-sky-500/50">
               <Download className="size-3.5" />
             </div>
             <div>

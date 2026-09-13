@@ -48,7 +48,7 @@ export function FinanceReportView({ summary, selectedMonth, onMonthChange }: Fin
   return (
     <div className="space-y-6">
       {/* Month Picker & Export Actions Header */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 shadow-xl backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative z-30 flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 shadow-xl backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
             <BarChart3 className="size-5 text-sky-400" />
