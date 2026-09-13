@@ -5,7 +5,7 @@ import { BarChart3, PlusCircle, Sparkles, Wallet } from "lucide-react";
 import { TransactionForm } from "./TransactionForm";
 import { TransactionList } from "./TransactionList";
 import { useFinanceCategories, useFinanceSuggestions, useFinanceTransactions } from "../hooks";
-import FinanceLoading from "@/app/(dashboard)/finance/loading";
+import { FinanceLoading } from "./FinanceLoading";
 
 export function FinanceView() {
   const { data: categories = [], isLoading: isLoadingCat } = useFinanceCategories();

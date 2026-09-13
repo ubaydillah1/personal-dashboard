@@ -1,11 +1,6 @@
-export default function FinanceReportLoading() {
+export function FinanceReportLoading() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12 animate-pulse">
-      {/* Back button & Header Skeleton */}
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-44 rounded-xl bg-zinc-800" />
-      </div>
-
       <div className="space-y-1.5">
         <div className="h-7 w-48 rounded bg-zinc-800" />
         <div className="h-3.5 w-72 rounded bg-zinc-800/60" />

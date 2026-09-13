@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { FinanceReportClient } from "@/features/finance/components/FinanceReportClient";
-import FinanceReportLoading from "./loading";
 
 export const metadata: Metadata = {
   title: "Laporan Keuangan",
@@ -24,9 +22,7 @@ export default function FinanceReportPage() {
         </Link>
       </div>
 
-      <Suspense fallback={<FinanceReportLoading />}>
-        <FinanceReportClient />
-      </Suspense>
+      <FinanceReportClient />
     </div>
   );
 }

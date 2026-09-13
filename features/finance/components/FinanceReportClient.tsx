@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FinanceReportView } from "@/features/finance/components/FinanceReportView";
 import { useFinanceSummary } from "../hooks";
 import type { FinanceSummary } from "@/features/finance/types";
-import FinanceReportLoading from "@/app/(dashboard)/finance/report/loading";
+import { FinanceReportLoading } from "./FinanceReportLoading";
 
 interface FinanceReportClientProps {
   summary?: FinanceSummary;

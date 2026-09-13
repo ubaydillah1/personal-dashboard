@@ -1,4 +1,4 @@
-export default function FinanceLoading() {
+export function FinanceLoading() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12 animate-pulse">
       {/* Header Skeleton */}
